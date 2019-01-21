@@ -30,9 +30,11 @@ func main() {
 	}
 }
 
+// TODO: Add a BoltDB instance here.
 type IdentityDB struct {
 }
 
+// TODO: Replace this function with something that checks the DB for current identities.
 func (db *IdentityDB) Identify(ident string) (*hpfeeds.Identity, error) {
 	return &hpfeeds.Identity{
 		Ident:       "test",
