@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	hpfeeds "github.com/d1str0/go-hpfeeds"
+	"github.com/d1str0/hpfeeds"
 )
 
 const version = "v0.0.1"
