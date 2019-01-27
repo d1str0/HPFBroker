@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/d1str0/hpfeeds"
 	bolt "go.etcd.io/bbolt"
@@ -41,6 +42,16 @@ func main() {
 	b.SetDebugLogger(log.Print)
 	b.SetInfoLogger(log.Print)
 	b.SetErrorLogger(log.Print)
+
+	go func() {
+		mux := routes()
+
+		s := http.Server{
+			Addr:    ":8080",
+			Handler: mux,
+		}
+		log.Fatal(s.ListenAndServe())
+	}()
 
 	err = b.ListenAndServe()
 	if err != nil {
