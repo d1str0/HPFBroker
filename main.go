@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 
@@ -10,11 +11,14 @@ import (
 
 const version = "v0.0.1"
 
-var path = "bolt.db"
+var path string
 
 func main() {
 	fmt.Println("///- Starting up HPFBroker")
 	fmt.Printf("//- Version %s\n", version)
+
+	flag.StringVar(&path, "db", "bolt.db", "File path for the BoltDB store file.")
+	flag.Parse()
 
 	db, err := bolt.Open(path, 0666, nil)
 	if err != nil {
