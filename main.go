@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -71,10 +72,12 @@ func initializeDB(db *bolt.DB) (*IdentityDB, error) {
 
 // TODO: Replace this function with something that checks the DB for current identities.
 func (db *IdentityDB) Identify(ident string) (*hpfeeds.Identity, error) {
-	return &hpfeeds.Identity{
-		Ident:       "test",
-		Secret:      "test",
-		SubChannels: []string{"test"},
-		PubChannels: []string{"test"},
-	}, nil
+	var i hpfeeds.Identity
+	err := db.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("identities"))
+		v := b.Get([]byte(ident))
+		err := json.Unmarshal(v, &i)
+		return err
+	})
+	return &i, err
 }
