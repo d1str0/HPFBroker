@@ -1,4 +1,9 @@
 HPFBroker
+
+# bbolt uses a DB file for persistence. This should never be committed.
+bolt.db
+
+# Vim swap files
 *.swp
 
 # Binaries for programs and plugins
