@@ -15,36 +15,52 @@ const version = "v0.0.1"
 
 var path string
 
+// To be passed to various http handlers.
+type App struct {
+	DB   *bolt.DB
+	Name string
+}
+
 func main() {
 	fmt.Println("///- Starting up HPFBroker")
 	fmt.Printf("//- Version %s\n", version)
 
+	// Grab any command line arguments
 	flag.StringVar(&path, "db", "bolt.db", "File path for the BoltDB store file.")
 	flag.Parse()
 
+	// Open up the boltDB file
 	db, err := bolt.Open(path, 0666, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	// Prepare DB and store as IdentityDB
-	idb, err := initializeDB(db)
+	// KVStore for use with hpfeeds broker
+	kv := KVStore{DB: db}
+	// App for use with http handlers
+	app := App{DB: db, Name: "test"}
+
+	// Prepare DB to ensure we have the appropriate buckets ready
+	err = initializeDB(kv)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	b := &hpfeeds.Broker{
+	// Configure hpfeeds broker server
+	broker := &hpfeeds.Broker{
 		Name: "HPFBroker",
 		Port: 10000,
-		DB:   idb,
+		DB:   kv,
 	}
-	b.SetDebugLogger(log.Print)
-	b.SetInfoLogger(log.Print)
-	b.SetErrorLogger(log.Print)
+	broker.SetDebugLogger(log.Print)
+	broker.SetInfoLogger(log.Print)
+	broker.SetErrorLogger(log.Print)
 
+	// Run http server concurrently
 	go func() {
-		mux := routes()
+		// Load routes for the server
+		mux := routes(app)
 
 		s := http.Server{
 			Addr:    ":8080",
@@ -53,13 +69,14 @@ func main() {
 		log.Fatal(s.ListenAndServe())
 	}()
 
-	err = b.ListenAndServe()
+	// Start hpfeeds broker server
+	err = broker.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-type IdentityDB struct {
+type KVStore struct {
 	DB *bolt.DB
 }
 
@@ -68,8 +85,8 @@ var BUCKETS = []string{
 }
 
 // Initialize the database and assert certain buckets exist.
-func initializeDB(db *bolt.DB) (*IdentityDB, error) {
-	err := db.Update(func(tx *bolt.Tx) error {
+func initializeDB(kv KVStore) error {
+	err := kv.DB.Update(func(tx *bolt.Tx) error {
 		for _, b := range BUCKETS {
 			_, err := tx.CreateBucketIfNotExists([]byte(b))
 			if err != nil {
@@ -78,13 +95,12 @@ func initializeDB(db *bolt.DB) (*IdentityDB, error) {
 		}
 		return nil
 	})
-	return &IdentityDB{DB: db}, err
+	return err
 }
 
-// TODO: Replace this function with something that checks the DB for current identities.
-func (db *IdentityDB) Identify(ident string) (*hpfeeds.Identity, error) {
+func (kv KVStore) Identify(ident string) (*hpfeeds.Identity, error) {
 	var i hpfeeds.Identity
-	err := db.DB.View(func(tx *bolt.Tx) error {
+	err := kv.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("identities"))
 		v := b.Get([]byte(ident))
 		err := json.Unmarshal(v, &i)
