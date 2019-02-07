@@ -6,40 +6,78 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/BurntSushi/toml"
 	"github.com/d1str0/hpfeeds"
 	bolt "go.etcd.io/bbolt"
 )
 
-const version = "v0.0.1"
+const Version = "v0.0.1"
 
-var path string
+var configFilename string
 
 // To be passed to various http handlers.
 type App struct {
-	DB   *bolt.DB
+	DB *bolt.DB
+}
+
+// Configuration for any BoltDB options
+type DBConfig struct {
+	Path string
+}
+
+// Configuration for the HPFeeds broker srver.
+type BrokerConfig struct {
 	Name string
+	Port int
+}
+
+// Configuration for the webserver
+type HttpConfig struct {
+	Addr string
+	//SessionSecret string // For Gorilla sessions
+}
+
+type tomlConfig struct {
+	DBConfig     `toml:"database"`
+	BrokerConfig `toml:"hpfeeds"`
+	HttpConfig   `toml:"http"`
 }
 
 func main() {
 	fmt.Println("///- Starting up HPFBroker")
-	fmt.Printf("//- Version %s\n", version)
+	fmt.Printf("//- Version %s\n", Version)
 
 	// Grab any command line arguments
-	flag.StringVar(&path, "db", "bolt.db", "File path for the BoltDB store file.")
+	flag.StringVar(&configFilename, "config", "config.toml", "File path for the config file (TOML).")
 	flag.Parse()
 
+	var t tomlConfig
+
+	_, err := toml.DecodeFile(configFilename, &t)
+	if err != nil {
+		if _, ok := err.(*os.PathError); ok {
+			log.Fatal("Config file not found.")
+		} else {
+			log.Fatal(err.Error())
+		}
+	}
+
+	dbc := t.DBConfig
+
 	// Open up the boltDB file
-	db, err := bolt.Open(path, 0666, nil)
+	db, err := bolt.Open(dbc.Path, 0666, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
+	// For use with HTTP handlers
+	app := App{DB: db}
+
 	// KVStore for use with hpfeeds broker
 	kv := KVStore{DB: db}
-	// App for use with http handlers
-	app := App{DB: db, Name: "test"}
 
 	// Prepare DB to ensure we have the appropriate buckets ready
 	err = initializeDB(kv)
@@ -47,23 +85,25 @@ func main() {
 		log.Fatal(err)
 	}
 
+	bc := t.BrokerConfig
 	// Configure hpfeeds broker server
 	broker := &hpfeeds.Broker{
-		Name: "HPFBroker",
-		Port: 10000,
+		Name: bc.Name,
+		Port: bc.Port,
 		DB:   kv,
 	}
 	broker.SetDebugLogger(log.Print)
 	broker.SetInfoLogger(log.Print)
 	broker.SetErrorLogger(log.Print)
 
+	hc := t.HttpConfig
 	// Run http server concurrently
 	go func() {
 		// Load routes for the server
 		mux := routes(app)
 
 		s := http.Server{
-			Addr:    ":8080",
+			Addr:    hc.Addr,
 			Handler: mux,
 		}
 		log.Fatal(s.ListenAndServe())
@@ -82,6 +122,8 @@ type KVStore struct {
 
 var BUCKETS = []string{
 	"identities",
+	"channels",
+	"users",
 }
 
 // Initialize the database and assert certain buckets exist.

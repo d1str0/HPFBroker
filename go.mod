@@ -1,6 +1,7 @@
 module github.com/d1str0/HPFBroker
 
 require (
+	github.com/BurntSushi/toml v0.3.1
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/d1str0/hpfeeds v0.1.1
 	go.etcd.io/bbolt v1.3.0
