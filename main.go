@@ -140,7 +140,6 @@ func initializeDB(kv KVStore) error {
 	return err
 }
 
-// Used to identify a user and their identity within hpfeeds broker.
 func (kv KVStore) Identify(ident string) (*hpfeeds.Identity, error) {
 	var i hpfeeds.Identity
 	err := kv.DB.View(func(tx *bolt.Tx) error {
