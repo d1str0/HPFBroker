@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/d1str0/hpfeeds"
+	bolt "go.etcd.io/bbolt"
 )
 
 func statusHandler(app App) func(w http.ResponseWriter, r *http.Request) {
@@ -11,9 +15,31 @@ func statusHandler(app App) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func apiIdentHandler(app App) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ident := r.URL.Path[len("/api/ident/"):]
+		i, err := Identify(app, ident)
+
+		fmt.Fprintf(w, "This is where you GET an asdfdent.\n%#v\n%#v)", i, err)
+	}
+
+}
+
 func routes(app App) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/status", statusHandler(app))
-	//mux.HandleFunc("/api", apiHandler(app))
+	mux.HandleFunc("/api/ident/", apiIdentHandler(app))
 	return mux
+}
+
+// Used to identify a user and their identity within hpfeeds broker.
+func Identify(app App, ident string) (*hpfeeds.Identity, error) {
+	var i hpfeeds.Identity
+	err := app.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("identities"))
+		v := b.Get([]byte(ident))
+		err := json.Unmarshal(v, &i)
+		return err
+	})
+	return &i, err
 }
