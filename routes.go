@@ -17,6 +17,12 @@ func statusHandler(app App) func(w http.ResponseWriter, r *http.Request) {
 
 func apiIdentHandler(app App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			// Return identity if found
+		case http.MethodPut:
+			// Update user
+		}
 		ident := r.URL.Path[len("/api/ident/"):]
 		i, err := GetIdentity(app, ident)
 
