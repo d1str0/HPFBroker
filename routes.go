@@ -15,6 +15,7 @@ func statusHandler(app App) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//TODO return proer http codes per method
 func apiIdentHandler(app App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ident := r.URL.Path[len("/api/ident/"):]
@@ -41,6 +42,7 @@ func apiIdentHandler(app App) func(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Request body required", 400)
 				return
 			}
+
 			err := json.NewDecoder(r.Body).Decode(&id)
 			if err != nil {
 				http.Error(w, err.Error(), 400)
@@ -48,6 +50,7 @@ func apiIdentHandler(app App) func(w http.ResponseWriter, r *http.Request) {
 			}
 			if ident != id.Ident {
 				http.Error(w, "Request body not valid for this URI. Ident mismatch.", 400)
+				return
 			}
 
 			err = SaveIdentity(app, id)
