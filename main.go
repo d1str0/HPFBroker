@@ -17,11 +17,6 @@ const Version = "v0.0.1"
 
 var configFilename string
 
-// To be passed to various http handlers.
-type App struct {
-	DB *bolt.DB
-}
-
 // Configuration for any BoltDB options
 type DBConfig struct {
 	Path string
@@ -74,13 +69,10 @@ func main() {
 	defer db.Close()
 
 	// For use with HTTP handlers
-	app := App{DB: db}
-
-	// KVStore for use with hpfeeds broker
-	kv := KVStore{DB: db}
+	bs := BoltStore{db: db}
 
 	// Prepare DB to ensure we have the appropriate buckets ready
-	err = initializeDB(kv)
+	err = initializeDB(bs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -90,7 +82,7 @@ func main() {
 	broker := &hpfeeds.Broker{
 		Name: bc.Name,
 		Port: bc.Port,
-		DB:   kv,
+		DB:   bs,
 	}
 	broker.SetDebugLogger(log.Print)
 	broker.SetInfoLogger(log.Print)
@@ -100,7 +92,7 @@ func main() {
 	// Run http server concurrently
 	go func() {
 		// Load routes for the server
-		mux := routes(app)
+		mux := routes(bs)
 
 		s := http.Server{
 			Addr:    hc.Addr,
@@ -116,19 +108,9 @@ func main() {
 	}
 }
 
-type KVStore struct {
-	DB *bolt.DB
-}
-
-var BUCKETS = []string{
-	"identities",
-	"channels",
-	"users",
-}
-
 // Initialize the database and assert certain buckets exist.
-func initializeDB(kv KVStore) error {
-	err := kv.DB.Update(func(tx *bolt.Tx) error {
+func initializeDB(bs BoltStore) error {
+	err := bs.db.Update(func(tx *bolt.Tx) error {
 		for _, b := range BUCKETS {
 			_, err := tx.CreateBucketIfNotExists([]byte(b))
 			if err != nil {
@@ -140,9 +122,9 @@ func initializeDB(kv KVStore) error {
 	return err
 }
 
-func (kv KVStore) Identify(ident string) (*hpfeeds.Identity, error) {
+func (bs BoltStore) Identify(ident string) (*hpfeeds.Identity, error) {
 	var i hpfeeds.Identity
-	err := kv.DB.View(func(tx *bolt.Tx) error {
+	err := bs.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("identities"))
 		v := b.Get([]byte(ident))
 		err := json.Unmarshal(v, &i)
