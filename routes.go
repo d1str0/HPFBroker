@@ -26,10 +26,10 @@ func apiIdentHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) 
 			i, err := GetIdentity(bs, ident)
 			buf, err := json.Marshal(i)
 			if err != nil {
-				http.Error(w, err.Error(), 500)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			} else {
 				if i.Ident == "" {
-					http.Error(w, "Ident not found", 404)
+					http.Error(w, "Ident not found", http.StatusNotFound)
 				} else {
 					fmt.Fprintf(w, "%s", buf)
 				}
@@ -38,13 +38,13 @@ func apiIdentHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) 
 			// Update user
 			var id hpfeeds.Identity
 			if r.Body == nil {
-				http.Error(w, "Request body required", 400)
+				http.Error(w, "Request body required", http.StatusBadRequest)
 				return
 			}
 
 			err := json.NewDecoder(r.Body).Decode(&id)
 			if err != nil {
-				http.Error(w, err.Error(), 400)
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 			if ident != id.Ident {
@@ -54,13 +54,13 @@ func apiIdentHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) 
 
 			err = SaveIdentity(bs, id)
 			if err != nil {
-				http.Error(w, err.Error(), 500)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		case http.MethodDelete:
 			// Delete user
 			err := DeleteIdentity(bs, ident)
 			if err != nil {
-				http.Error(w, err.Error(), 500)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}
