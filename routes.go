@@ -10,7 +10,7 @@ import (
 
 func statusHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Welcome to the home page of %s!", Version)
+		fmt.Fprintf(w, "Running hpfeeds broker version %s!", Version)
 	}
 }
 
