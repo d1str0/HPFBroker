@@ -1,10 +1,6 @@
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
-github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
-github.com/d1str0/hpfeeds v0.1.1 h1:ni3FrwJNbJ149hTms2W219lRdg7OC7Tpaj0VLdEoV/c=
-github.com/d1str0/hpfeeds v0.1.1/go.mod h1:Vz6oY+o+BF++pu8d/Aj9fjeVWMTGQjOIi2Ow/2+kLSY=
-go.etcd.io/bbolt v1.3.0 h1:oY10fI923Q5pVCVt1GBTZMn8LHo5M+RCInFpeMnV4QI=
-go.etcd.io/bbolt v1.3.0/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
-golang.org/x/sys v0.0.0-20190121090251-770c60269bf0 h1:kTCXMFd85FwiS5g4PBFOimFnVyc7jqgrMI8TZIq/W/Y=
-golang.org/x/sys v0.0.0-20190121090251-770c60269bf0/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+github.com/d1str0/hpfeeds v0.1.4 h1:y8ogGmQ1SORHqKpL3LdE2SjRV+i19ydN1sa8REVGRU0=
+github.com/d1str0/hpfeeds v0.1.4/go.mod h1:Vz6oY+o+BF++pu8d/Aj9fjeVWMTGQjOIi2Ow/2+kLSY=
+go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
+go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
