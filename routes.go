@@ -8,9 +8,9 @@ import (
 	"github.com/d1str0/hpfeeds"
 )
 
-func statusHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) {
+func statusHandler() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Running hpfeeds broker version %s!", Version)
+		fmt.Fprintf(w, "%s", Version)
 	}
 }
 
@@ -70,7 +70,7 @@ func apiIdentHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) 
 
 func routes(bs BoltStore) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/status", statusHandler(bs))
+	mux.HandleFunc("/status", statusHandler())
 	mux.HandleFunc("/api/ident/", apiIdentHandler(bs))
 	return mux
 }
