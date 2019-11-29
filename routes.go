@@ -14,9 +14,11 @@ func statusHandler() func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//TODO return proer http codes per method
+//TODO return proper http codes per method
 func apiIdentHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// TODO: Fix this line, it will panic if the request is missing the
+		// trailing /
 		ident := r.URL.Path[len("/api/ident/"):]
 
 		// Handle API requests depending on HTTP Method
@@ -56,6 +58,8 @@ func apiIdentHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) 
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
+			w.WriteHeader(http.StatusCreated)
+			fmt.Fprintf(w, "%s", r.Body)
 		case http.MethodDelete:
 			// Delete user
 			err := DeleteIdentity(bs, ident)
