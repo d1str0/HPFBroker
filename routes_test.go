@@ -60,19 +60,26 @@ func TestRoutes_apiIdentPUTHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	testRequest(t, bs, req, http.StatusBadRequest, ErrorMissingIdentifier)
+
+}
+
+func testRequest(t *testing.T, bs BoltStore, req *http.Request, expectedStatus int, expected string) {
+
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(apiIdentPUTHandler(bs))
 
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusBadRequest {
+	if status := rr.Code; status != expectedStatus {
 		t.Errorf("handler returned wrong status code:\n\tgot %v \n\twant %v",
-			status, http.StatusOK)
+			status, expectedStatus)
 	}
-	expected := ErrorMissingIdentifier
-	if strings.TrimSuffix(rr.Body.String(), "\n") != expected {
+
+	respBody := strings.TrimSuffix(rr.Body.String(), "\n")
+	if respBody != expected {
 		t.Errorf("handler returned unexpected body:\n\tgot %v \n\twant %v",
-			rr.Body.String(), expected)
+			respBody, expected)
 	}
 }
 
