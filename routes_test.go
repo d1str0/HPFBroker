@@ -3,11 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/d1str0/hpfeeds"
-	bolt "go.etcd.io/bbolt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/d1str0/hpfeeds"
+	bolt "go.etcd.io/bbolt"
 )
 
 const TestDBPath = "test.db"
@@ -42,7 +44,7 @@ func TestRoutes_statusHandler(t *testing.T) {
 	}
 }
 
-func TestRoutes_apiIdentHandler(t *testing.T) {
+func TestRoutes_apiIdentPUTHandler(t *testing.T) {
 	bs := getTestDB(t)
 
 	// PUT
@@ -53,27 +55,25 @@ func TestRoutes_apiIdentHandler(t *testing.T) {
 	}
 
 	r := bytes.NewReader(buf)
-	req, err := http.NewRequest("PUT", "/api/ident/test-ident", r)
+	req, err := http.NewRequest("PUT", "/api/ident/", r)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(apiIdentHandler(bs))
+	handler := http.HandlerFunc(apiIdentPUTHandler(bs))
 
 	handler.ServeHTTP(rr, req)
-	/*
 
-		if status := rr.Code; status != http.StatusCreated {
-			t.Errorf("handler returned wrong status code: got %v want %v",
-				status, http.StatusOK)
-		}
-			expected := string(buf)
-			if rr.Body.String() != expected {
-				t.Errorf("handler returned unexpected body: got %v want %v",
-					rr.Body.String(), expected)
-			}
-	*/
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("handler returned wrong status code:\n\tgot %v \n\twant %v",
+			status, http.StatusOK)
+	}
+	expected := ErrorMissingIdentifier
+	if strings.TrimSuffix(rr.Body.String(), "\n") != expected {
+		t.Errorf("handler returned unexpected body:\n\tgot %v \n\twant %v",
+			rr.Body.String(), expected)
+	}
 }
 
 func getTestDB(t *testing.T) BoltStore {
