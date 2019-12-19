@@ -33,6 +33,22 @@ func (bs BoltStore) Get(key string) (interface{}, error) {
 	return i, err
 }
 
+func (bs BoltStore) GetKeys() ([]string, error) {
+	var keys []string
+	err := bs.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(IDBucket)
+
+		c := b.Cursor()
+
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			keys = append(keys, string(k))
+		}
+
+		return nil
+	})
+	return keys, err
+}
+
 func (bs BoltStore) Put(key string, i interface{}) error {
 	err := bs.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(IDBucket)
@@ -45,14 +61,17 @@ func (bs BoltStore) Put(key string, i interface{}) error {
 
 // Used to identify a user and their identity within hpfeeds broker.
 func GetIdentity(bs BoltStore, ident string) (*hpfeeds.Identity, error) {
-	var i hpfeeds.Identity
+	var i *hpfeeds.Identity
 	err := bs.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("identities"))
 		v := b.Get([]byte(ident))
-		err := json.Unmarshal(v, &i)
+		if v == nil {
+			return nil
+		}
+		err := json.Unmarshal(v, i)
 		return err
 	})
-	return &i, err
+	return i, err
 }
 
 func SaveIdentity(bs BoltStore, id hpfeeds.Identity) error {
