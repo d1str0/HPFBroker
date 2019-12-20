@@ -54,14 +54,29 @@ func TestRoutes_apiIdentPUTHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r := bytes.NewReader(buf)
-	req, err := http.NewRequest("PUT", "/api/ident/", r)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// FAIL
+	t.Run("Missing Identifier", func(t *testing.T) {
 
-	testRequest(t, bs, req, http.StatusBadRequest, ErrorMissingIdentifier)
+		r := bytes.NewReader(buf)
+		req, err := http.NewRequest("PUT", "/api/ident/", r)
+		if err != nil {
+			t.Fatal(err)
+		}
 
+		testRequest(t, bs, req, http.StatusBadRequest, ErrMissingIdentifier)
+	})
+
+	// FAIL
+	t.Run("Mismatched Identifier", func(t *testing.T) {
+
+		r := bytes.NewReader(buf)
+		req, err := http.NewRequest("PUT", "/api/ident/asdf", r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testRequest(t, bs, req, http.StatusBadRequest, ErrMismatchedIdentifier)
+	})
 }
 
 func testRequest(t *testing.T, bs BoltStore, req *http.Request, expectedStatus int, expected string) {

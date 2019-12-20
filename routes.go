@@ -9,8 +9,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const ErrorMissingIdentifier = "400 - Bad Request (Are you missing an identifier in your URI?)"
-const ErrorMethodNotAllowed = "405 - Method Not Allowed"
+const ErrMissingIdentifier = "Missing identifier in URI"
+const ErrMismatchedIdentifier = "URI doesn't match provided data"
+const ErrBodyRequired = "Body is required for this endpoint"
 
 func statusHandler() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -77,14 +78,14 @@ func apiIdentPUTHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 		vars := mux.Vars(r)
 		ident := vars["id"]
 
+		// Can't PUT on /ident/ without an identifier.
 		if ident == "" {
-			http.Error(w, ErrorMissingIdentifier, http.StatusBadRequest)
+			http.Error(w, ErrMissingIdentifier, http.StatusBadRequest)
 			return
 		}
 
 		i, err := GetIdentity(bs, ident)
 		if err != nil {
-			fmt.Printf("PUT error")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -95,7 +96,7 @@ func apiIdentPUTHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 		// Update user
 		var id hpfeeds.Identity
 		if r.Body == nil {
-			http.Error(w, "Request body required", http.StatusBadRequest)
+			http.Error(w, ErrBodyRequired, http.StatusBadRequest)
 			return
 		}
 
@@ -105,7 +106,7 @@ func apiIdentPUTHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		if ident != id.Ident {
-			http.Error(w, "Request body not valid for this URI. Ident mismatch.", 400)
+			http.Error(w, ErrMismatchedIdentifier, http.StatusBadRequest)
 			return
 		}
 
