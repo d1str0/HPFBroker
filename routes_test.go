@@ -10,10 +10,7 @@ import (
 
 	"github.com/d1str0/hpfeeds"
 	"github.com/gorilla/mux"
-	bolt "go.etcd.io/bbolt"
 )
-
-const TestDBPath = "test.db"
 
 func TestRoutes_statusHandler(t *testing.T) {
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
@@ -69,6 +66,17 @@ func TestRoutes_apiIdentPUTHandler(t *testing.T) {
 	})
 
 	// FAIL
+	t.Run("Missing Request Body", func(t *testing.T) {
+
+		req, err := http.NewRequest("PUT", "/api/ident/test-ident", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testRequest(t, router, req, http.StatusBadRequest, ErrBodyRequired)
+	})
+
+	// FAIL
 	t.Run("Mismatched Identifier", func(t *testing.T) {
 
 		r := bytes.NewReader(buf)
@@ -91,6 +99,37 @@ func TestRoutes_apiIdentPUTHandler(t *testing.T) {
 
 		testRequest(t, router, req, http.StatusCreated, string(buf))
 	})
+	defer DeleteIdentity(bs, "test-ident")
+
+	// SUCCESS
+	t.Run("Update Ident", func(t *testing.T) {
+
+		r := bytes.NewReader(buf)
+		req, err := http.NewRequest("PUT", "/api/ident/test-ident", r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testRequest(t, router, req, http.StatusOK, string(buf))
+	})
+
+	// FAIL
+	t.Run("Update Mismatched Ident", func(t *testing.T) {
+		id = hpfeeds.Identity{Ident: "test-ident1", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
+		buf2, err := json.Marshal(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		r := bytes.NewReader(buf2)
+		req, err := http.NewRequest("PUT", "/api/ident/test-ident", r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedIdentifier)
+	})
+
 }
 
 func testRequest(t *testing.T, router *mux.Router, req *http.Request, expectedStatus int, expected string) {
@@ -108,22 +147,4 @@ func testRequest(t *testing.T, router *mux.Router, req *http.Request, expectedSt
 		t.Errorf("handler returned unexpected body:\n\tgot %s \n\twant %s",
 			respBody, expected)
 	}
-}
-
-func getTestDB(t *testing.T) BoltStore {
-	// Open up the boltDB file
-	db, err := bolt.Open(TestDBPath, 0666, nil)
-	if err != nil {
-		t.Fatalf("Error opening db: %s", err.Error())
-	}
-
-	// For use with HTTP handlers
-	bs := BoltStore{db: db}
-
-	// Prepare DB to ensure we have the appropriate buckets ready
-	err = initializeDB(bs)
-	if err != nil {
-		t.Fatalf("Error initializing db: %s", err.Error())
-	}
-	return bs
 }
