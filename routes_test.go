@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/d1str0/hpfeeds"
+	"github.com/gorilla/mux"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -46,6 +47,7 @@ func TestRoutes_statusHandler(t *testing.T) {
 
 func TestRoutes_apiIdentPUTHandler(t *testing.T) {
 	bs := getTestDB(t)
+	router := router(bs)
 
 	// PUT
 	id := hpfeeds.Identity{Ident: "test-ident", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
@@ -54,22 +56,47 @@ func TestRoutes_apiIdentPUTHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r := bytes.NewReader(buf)
-	req, err := http.NewRequest("PUT", "/api/ident/", r)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// FAIL
+	t.Run("Missing Identifier", func(t *testing.T) {
 
-	testRequest(t, bs, req, http.StatusBadRequest, ErrorMissingIdentifier)
+		r := bytes.NewReader(buf)
+		req, err := http.NewRequest("PUT", "/api/ident/", r)
+		if err != nil {
+			t.Fatal(err)
+		}
 
+		testRequest(t, router, req, http.StatusBadRequest, ErrMissingIdentifier)
+	})
+
+	// FAIL
+	t.Run("Mismatched Identifier", func(t *testing.T) {
+
+		r := bytes.NewReader(buf)
+		req, err := http.NewRequest("PUT", "/api/ident/asdf", r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedIdentifier)
+	})
+
+	// SUCCESS
+	t.Run("Create Ident", func(t *testing.T) {
+
+		r := bytes.NewReader(buf)
+		req, err := http.NewRequest("PUT", "/api/ident/test-ident", r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testRequest(t, router, req, http.StatusCreated, string(buf))
+	})
 }
 
-func testRequest(t *testing.T, bs BoltStore, req *http.Request, expectedStatus int, expected string) {
-
+func testRequest(t *testing.T, router *mux.Router, req *http.Request, expectedStatus int, expected string) {
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(apiIdentPUTHandler(bs))
 
-	handler.ServeHTTP(rr, req)
+	router.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != expectedStatus {
 		t.Errorf("handler returned wrong status code:\n\tgot %v \n\twant %v",
@@ -78,7 +105,7 @@ func testRequest(t *testing.T, bs BoltStore, req *http.Request, expectedStatus i
 
 	respBody := strings.TrimSuffix(rr.Body.String(), "\n")
 	if respBody != expected {
-		t.Errorf("handler returned unexpected body:\n\tgot %v \n\twant %v",
+		t.Errorf("handler returned unexpected body:\n\tgot %s \n\twant %s",
 			respBody, expected)
 	}
 }
@@ -89,7 +116,6 @@ func getTestDB(t *testing.T) BoltStore {
 	if err != nil {
 		t.Fatalf("Error opening db: %s", err.Error())
 	}
-	defer db.Close()
 
 	// For use with HTTP handlers
 	bs := BoltStore{db: db}
