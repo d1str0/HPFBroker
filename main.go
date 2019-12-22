@@ -92,7 +92,7 @@ func main() {
 	// Run http server concurrently
 	go func() {
 		// Load routes for the server
-		mux := routes(bs)
+		mux := NewMux(bs)
 
 		s := http.Server{
 			Addr:    hc.Addr,

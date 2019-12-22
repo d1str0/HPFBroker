@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/d1str0/hpfeeds"
@@ -28,7 +29,7 @@ func apiIdentDELETEHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Req
 		// Delete user
 		err := DeleteIdentity(bs, ident)
 		if err != nil {
-			fmt.Printf("DELETE error")
+			log.Printf("apiIdentDELETEHandler, DeleteIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -45,7 +46,7 @@ func apiIdentGETHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 		if ident == "" {
 			keys, err := bs.GetKeys()
 			if err != nil {
-				fmt.Printf("GET error")
+				log.Printf("apiIdentGETHandler, GetKeys(), %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 
@@ -59,7 +60,7 @@ func apiIdentGETHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 		i, err := GetIdentity(bs, ident)
 		buf, err := json.Marshal(i)
 		if err != nil {
-			fmt.Printf("GET error 2")
+			log.Printf("apiIdentGETHandler, json.Marshal(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
 			if i.Ident == "" {
@@ -84,11 +85,16 @@ func apiIdentPUTHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
+		// Check to see if this ident already exists
 		i, err := GetIdentity(bs, ident)
 		if err != nil {
+			log.Printf("apiIdentPUTHandler, GetIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Is this a new Ident being created?
+		// We want to remember so we know to return 200 vs 201
 		if i == nil {
 			create = true
 		}
@@ -112,7 +118,7 @@ func apiIdentPUTHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 
 		err = SaveIdentity(bs, id)
 		if err != nil {
-			fmt.Print("Error decoding json")
+			log.Printf("apiIdentPUTHandler, SaveIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -122,17 +128,30 @@ func apiIdentPUTHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 			w.WriteHeader(http.StatusOK)
 		}
 
-		fmt.Fprintf(w, "%s", r.Body)
+		out, err := json.Marshal(id)
+		if err != nil {
+			log.Printf("apiIdentPUTHandler, json.Marshal(), %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintf(w, "%s", out)
 	}
 }
 
-func routes(bs BoltStore) *http.ServeMux {
+func router(bs BoltStore) *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/status", statusHandler())
 	r.HandleFunc("/api/ident/", apiIdentGETHandler(bs)).Methods("GET")
+	r.HandleFunc("/api/ident/", apiIdentPUTHandler(bs)).Methods("PUT")
 	r.HandleFunc("/api/ident/{id}", apiIdentGETHandler(bs)).Methods("GET")
 	r.HandleFunc("/api/ident/{id}", apiIdentPUTHandler(bs)).Methods("PUT")
 	r.HandleFunc("/api/ident/{id}", apiIdentDELETEHandler(bs)).Methods("DELETE")
+	return r
+}
+
+func NewMux(bs BoltStore) *http.ServeMux {
+	r := router(bs)
 
 	s := http.NewServeMux()
 	s.Handle("/", r)

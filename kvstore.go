@@ -68,7 +68,8 @@ func GetIdentity(bs BoltStore, ident string) (*hpfeeds.Identity, error) {
 		if v == nil {
 			return nil
 		}
-		err := json.Unmarshal(v, i)
+		i = &hpfeeds.Identity{}
+		err := json.Unmarshal(v, &i)
 		return err
 	})
 	return i, err
