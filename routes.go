@@ -10,9 +10,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const ErrMissingIdentifier = "Missing identifier in URI"
-const ErrMismatchedIdentifier = "URI doesn't match provided data"
-const ErrBodyRequired = "Body is required for this endpoint"
+const ErrMissingIdentifier = "Missing identifier in URI"          // 400
+const ErrMismatchedIdentifier = "URI doesn't match provided data" // 400
+const ErrBodyRequired = "Body is required for this endpoint"      // 400
+
+const ErrIdentNotFound = "Ident not found" // 404
 
 func statusHandler() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -44,15 +46,14 @@ func apiIdentGETHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 
 		// "/api/ident/"
 		if ident == "" {
-			keys, err := bs.GetKeys()
+			idents, err := bs.GetAllIdentities()
 			if err != nil {
 				log.Printf("apiIdentGETHandler, GetKeys(), %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
-
-			for _, v := range keys {
-				fmt.Fprintf(w, "%s\n", v)
-			}
+			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(idents)
 			return
 		}
 
@@ -63,9 +64,11 @@ func apiIdentGETHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 			log.Printf("apiIdentGETHandler, json.Marshal(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
-			if i.Ident == "" {
+			if i == nil {
 				http.Error(w, "Ident not found", http.StatusNotFound)
 			} else {
+				w.WriteHeader(http.StatusOK)
+				w.Header().Set("Content-Type", "application/json")
 				fmt.Fprintf(w, "%s", buf)
 			}
 		}

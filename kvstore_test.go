@@ -73,6 +73,20 @@ func TestKvstore_BoltStore(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		err = DeleteIdentity(bs, "test-ident2")
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = DeleteIdentity(bs, "test-ident3")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Should also work on non existent ident.
+		err = DeleteIdentity(bs, "test-ident4")
+		if err != nil {
+			t.Fatal(err)
+		}
 	})
 
 }

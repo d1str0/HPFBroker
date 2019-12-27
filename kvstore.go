@@ -37,6 +37,28 @@ func (bs BoltStore) GetKeys() ([]string, error) {
 	return keys, err
 }
 
+func (bs BoltStore) GetAllIdentities() ([]*hpfeeds.Identity, error) {
+	var idents []*hpfeeds.Identity
+	err := bs.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(IDBucket)
+
+		c := b.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			i := &hpfeeds.Identity{}
+			err := json.Unmarshal(v, &i)
+			if err != nil {
+				return err
+			}
+
+			idents = append(idents, i)
+		}
+
+		return nil
+	})
+	return idents, err
+}
+
 // Used to identify a user and their identity within hpfeeds broker.
 func GetIdentity(bs BoltStore, ident string) (*hpfeeds.Identity, error) {
 	var i *hpfeeds.Identity
