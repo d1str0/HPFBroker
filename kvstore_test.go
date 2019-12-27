@@ -22,9 +22,19 @@ func TestKvstore_BoltStore(t *testing.T) {
 	})
 
 	id1 := hpfeeds.Identity{Ident: "test-ident", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
+	id2 := hpfeeds.Identity{Ident: "test-ident2", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
+	id3 := hpfeeds.Identity{Ident: "test-ident3", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
 
 	t.Run("Save Identity", func(t *testing.T) {
 		err := SaveIdentity(bs, id1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = SaveIdentity(bs, id2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = SaveIdentity(bs, id3)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -44,6 +54,20 @@ func TestKvstore_BoltStore(t *testing.T) {
 		assertEqualIdentity(t, id1, *i)
 	})
 
+	t.Run("Get Keys", func(t *testing.T) {
+		keys, err := bs.GetKeys()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(keys) != 3 {
+			t.Error("Unexpected number of keys returned")
+		}
+		expect := []string{"test-ident", "test-ident2", "test-ident3"}
+		if !testEq(expect, keys) {
+			t.Error("Expected keys do not match keys returned")
+		}
+	})
+
 	t.Run("Delete", func(t *testing.T) {
 		err := DeleteIdentity(bs, "test-ident")
 		if err != nil {
@@ -60,7 +84,6 @@ func assertEqualIdentity(t *testing.T, expect hpfeeds.Identity, got hpfeeds.Iden
 	if expect.Secret != got.Secret {
 		t.Errorf("Mismatched Secrets:\n\tgot %s \n\twant %s", got.Secret, expect.Secret)
 	}
-
 	if !testEq(expect.SubChannels, got.SubChannels) {
 		t.Errorf("Mismatched SubChannels:\n\tgot %v \n\twant %v", got.SubChannels, expect.SubChannels)
 	}
