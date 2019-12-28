@@ -93,3 +93,19 @@ func DeleteIdentity(bs BoltStore, ident string) error {
 	})
 	return err
 }
+
+func (bs BoltStore) DeleteAllIdentities() error {
+	err := bs.db.Update(func(tx *bolt.Tx) error {
+		err := tx.DeleteBucket(IDBucket)
+		if err != nil {
+			return err
+		}
+		_, err = tx.CreateBucket(IDBucket)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	return err
+}

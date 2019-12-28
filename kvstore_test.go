@@ -68,24 +68,48 @@ func TestKvstore_BoltStore(t *testing.T) {
 		}
 	})
 
+	t.Run("Get All Identities", func(t *testing.T) {
+		i, err := bs.GetAllIdentities()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(i) != 3 {
+			t.Error("Expected 3 items at this point")
+		}
+	})
+
 	t.Run("Delete", func(t *testing.T) {
 		err := DeleteIdentity(bs, "test-ident")
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = DeleteIdentity(bs, "test-ident2")
+		i, err := GetIdentity(bs, "test-ident")
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = DeleteIdentity(bs, "test-ident3")
-		if err != nil {
-			t.Fatal(err)
+		if i != nil {
+			t.Error("Expected nil returned after delete.")
 		}
 
 		// Should also work on non existent ident.
 		err = DeleteIdentity(bs, "test-ident4")
 		if err != nil {
 			t.Fatal(err)
+		}
+	})
+
+	t.Run("Delete All Identities", func(t *testing.T) {
+		err := bs.DeleteAllIdentities()
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Test by getting something that was there
+		i, err := GetIdentity(bs, "test-ident2")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if i != nil {
+			t.Error("Expected nil returned after delete all.")
 		}
 	})
 
