@@ -162,6 +162,40 @@ func TestRoutes_apiIdentHandler(t *testing.T) {
 		})
 	})
 
+	t.Run("DELETE", func(t *testing.T) {
+		// SUCCESS
+		t.Run("Delete All", func(t *testing.T) {
+			req, err := http.NewRequest("DELETE", "/api/ident/", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			testRequest(t, router, req, http.StatusNoContent, "")
+		})
+
+		SaveIdentity(bs, id)
+
+		// SUCCESS
+		t.Run("Delete One", func(t *testing.T) {
+			req, err := http.NewRequest("DELETE", "/api/ident/test-ident", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			testRequest(t, router, req, http.StatusNoContent, "")
+		})
+
+		// SUCCESS
+		t.Run("Delete One Not Found", func(t *testing.T) {
+			req, err := http.NewRequest("DELETE", "/api/ident/test-ident", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			testRequest(t, router, req, http.StatusNotFound, ErrIdentNotFound)
+		})
+
+	})
 }
 
 // encodeBody is used to encode a request body

@@ -28,13 +28,42 @@ func apiIdentDELETEHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Req
 		vars := mux.Vars(r)
 		ident := vars["id"]
 
+		// DELETE /api/ident/
+		// Delete all identities
+		if ident == "" {
+			err := bs.DeleteAllIdentities()
+			if err != nil {
+				log.Printf("apiIdentDELETEHandler, DeleteAllIdentities(), %s", err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		// Delete user
-		err := DeleteIdentity(bs, ident)
+		i, err := GetIdentity(bs, ident)
+		if err != nil {
+			log.Printf("apiIdentDELETEHandler, GetIdentity(), %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// If it doesn't already exist, return 404.
+		if i == nil {
+			w.WriteHeader(http.StatusNotFound)
+			http.Error(w, ErrIdentNotFound, http.StatusNotFound)
+			return
+		}
+
+		err = DeleteIdentity(bs, ident)
 		if err != nil {
 			log.Printf("apiIdentDELETEHandler, DeleteIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		w.WriteHeader(http.StatusNoContent)
+		return
 	}
 
 }
@@ -147,6 +176,7 @@ func router(bs BoltStore) *mux.Router {
 	r.HandleFunc("/status", statusHandler())
 	r.HandleFunc("/api/ident/", apiIdentGETHandler(bs)).Methods("GET")
 	r.HandleFunc("/api/ident/", apiIdentPUTHandler(bs)).Methods("PUT")
+	r.HandleFunc("/api/ident/", apiIdentDELETEHandler(bs)).Methods("DELETE")
 	r.HandleFunc("/api/ident/{id}", apiIdentGETHandler(bs)).Methods("GET")
 	r.HandleFunc("/api/ident/{id}", apiIdentPUTHandler(bs)).Methods("PUT")
 	r.HandleFunc("/api/ident/{id}", apiIdentDELETEHandler(bs)).Methods("DELETE")
