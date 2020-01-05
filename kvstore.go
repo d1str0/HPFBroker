@@ -105,3 +105,82 @@ func (bs BoltStore) DeleteAllIdentities() error {
 	})
 	return err
 }
+
+// GetAllUsers returns a list of all hpfeeds Identity objects stored in the
+// db.
+func (bs BoltStore) GetAllUsers() ([]*User, error) {
+	var users []*User
+	err := bs.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(UserBucket)
+
+		c := b.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			u := &User{}
+			err := json.Unmarshal(v, &u)
+			if err != nil {
+				return err
+			}
+
+			users = append(users, u)
+		}
+
+		return nil
+	})
+	return users, err
+}
+
+// GetUser takes an username and returns their whole user object.
+func (bs BoltStore) GetUser(name string) (*User, error) {
+	var u *User
+	err := bs.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(UserBucket)
+		v := b.Get([]byte(name))
+		if v == nil {
+			return nil
+		}
+		u = &User{}
+		err := json.Unmarshal(v, &u)
+		return err
+	})
+	return u, err
+}
+
+// SaveUser persists a User in BoltStore.
+func (bs BoltStore) SaveUser(u User) error {
+	err := bs.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(UserBucket)
+		buf, err := json.Marshal(u)
+		b.Put([]byte(u.Name), buf)
+		return err
+	})
+	return err
+}
+
+// DeleteUser removes any saved User object matching the username
+func (bs BoltStore) DeleteUser(name string) error {
+	err := bs.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(UserBucket)
+		b.Delete([]byte(name))
+		return nil
+	})
+	return err
+}
+
+// DeleteAllUsers deletes the Bolt bucket holding users and recreates
+// it, essentially deleting all objects.
+func (bs BoltStore) DeleteAllUsers() error {
+	err := bs.db.Update(func(tx *bolt.Tx) error {
+		err := tx.DeleteBucket(UserBucket)
+		if err != nil {
+			return err
+		}
+		_, err = tx.CreateBucket(UserBucket)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	return err
+}

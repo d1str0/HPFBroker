@@ -10,93 +10,186 @@ func TestKvstore_BoltStore(t *testing.T) {
 	bs := getTestDB(t)
 	defer bs.Close()
 
-	t.Run("Get Nonexistant", func(t *testing.T) {
-		i, err := bs.GetIdentity("test")
-		if err != nil {
-			t.Fatal(err)
-		}
+	t.Run("IDENTITIES", func(t *testing.T) {
+		t.Run("Get Nonexistant", func(t *testing.T) {
+			i, err := bs.GetIdentity("test")
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		if i != nil {
-			t.Error("Expected nil identity returned.")
-		}
+			if i != nil {
+				t.Error("Expected nil identity returned.")
+			}
+		})
+
+		id1 := hpfeeds.Identity{Ident: "test-ident", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
+		id2 := hpfeeds.Identity{Ident: "test-ident2", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
+		id3 := hpfeeds.Identity{Ident: "test-ident3", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
+
+		t.Run("Save Identity", func(t *testing.T) {
+			err := bs.SaveIdentity(id1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = bs.SaveIdentity(id2)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = bs.SaveIdentity(id3)
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		t.Run("Get Existing", func(t *testing.T) {
+			i, err := bs.GetIdentity("test-ident")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if i == nil {
+				t.Error("Unexpected nil identity returned.")
+			}
+
+			// expected, got
+			assertEqualIdentity(t, id1, *i)
+		})
+
+		t.Run("Get All Identities", func(t *testing.T) {
+			i, err := bs.GetAllIdentities()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(i) != 3 {
+				t.Error("Expected 3 items at this point")
+			}
+		})
+
+		t.Run("Delete", func(t *testing.T) {
+			err := bs.DeleteIdentity("test-ident")
+			if err != nil {
+				t.Fatal(err)
+			}
+			i, err := bs.GetIdentity("test-ident")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if i != nil {
+				t.Error("Expected nil returned after delete.")
+			}
+
+			// Should also work on non existent ident.
+			err = bs.DeleteIdentity("test-ident4")
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		t.Run("Delete All Identities", func(t *testing.T) {
+			err := bs.DeleteAllIdentities()
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Test by getting something that was there
+			i, err := bs.GetIdentity("test-ident2")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if i != nil {
+				t.Error("Expected nil returned after delete all.")
+			}
+		})
 	})
 
-	id1 := hpfeeds.Identity{Ident: "test-ident", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
-	id2 := hpfeeds.Identity{Ident: "test-ident2", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
-	id3 := hpfeeds.Identity{Ident: "test-ident3", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
+	t.Run("USERS", func(t *testing.T) {
+		t.Run("Get Nonexistant", func(t *testing.T) {
+			u, err := bs.GetUser("test")
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	t.Run("Save Identity", func(t *testing.T) {
-		err := bs.SaveIdentity(id1)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = bs.SaveIdentity(id2)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = bs.SaveIdentity(id3)
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
+			if u != nil {
+				t.Error("Expected nil identity returned.")
+			}
+		})
 
-	t.Run("Get Existing", func(t *testing.T) {
-		i, err := bs.GetIdentity("test-ident")
-		if err != nil {
-			t.Fatal(err)
-		}
+		u1 := User{Name: "test-name", Hash: "test-hash", Role: "admin"}
+		u2 := User{Name: "test-name2", Hash: "test-hash", Role: "admin"}
+		u3 := User{Name: "test-name3", Hash: "test-hash", Role: "admin"}
 
-		if i == nil {
-			t.Error("Unexpected nil identity returned.")
-		}
+		t.Run("Save User", func(t *testing.T) {
+			err := bs.SaveUser(u1)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = bs.SaveUser(u2)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = bs.SaveUser(u3)
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
 
-		// expected, got
-		assertEqualIdentity(t, id1, *i)
-	})
+		t.Run("Get Existing", func(t *testing.T) {
+			u, err := bs.GetUser("test-name")
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	t.Run("Get All Identities", func(t *testing.T) {
-		i, err := bs.GetAllIdentities()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(i) != 3 {
-			t.Error("Expected 3 items at this point")
-		}
-	})
+			if u == nil {
+				t.Error("Unexpected nil user returned.")
+			}
 
-	t.Run("Delete", func(t *testing.T) {
-		err := bs.DeleteIdentity("test-ident")
-		if err != nil {
-			t.Fatal(err)
-		}
-		i, err := bs.GetIdentity("test-ident")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if i != nil {
-			t.Error("Expected nil returned after delete.")
-		}
+			// expected, got
+			assertEqualUser(t, u1, *u)
+		})
 
-		// Should also work on non existent ident.
-		err = bs.DeleteIdentity("test-ident4")
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
+		t.Run("Get All Users", func(t *testing.T) {
+			u, err := bs.GetAllUsers()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(u) != 3 {
+				t.Error("Expected 3 items at this point")
+			}
+		})
 
-	t.Run("Delete All Identities", func(t *testing.T) {
-		err := bs.DeleteAllIdentities()
-		if err != nil {
-			t.Fatal(err)
-		}
-		// Test by getting something that was there
-		i, err := bs.GetIdentity("test-ident2")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if i != nil {
-			t.Error("Expected nil returned after delete all.")
-		}
+		t.Run("Delete", func(t *testing.T) {
+			err := bs.DeleteIdentity("test-user")
+			if err != nil {
+				t.Fatal(err)
+			}
+			u, err := bs.GetIdentity("test-user")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if u != nil {
+				t.Error("Expected nil returned after delete.")
+			}
+
+			// Should also work on non existent ident.
+			err = bs.DeleteIdentity("test-user4")
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		t.Run("Delete All Users", func(t *testing.T) {
+			err := bs.DeleteAllUsers()
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Test by getting something that was there
+			u, err := bs.GetIdentity("test-user2")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if u != nil {
+				t.Error("Expected nil returned after delete all.")
+			}
+		})
 	})
 
 }
@@ -113,6 +206,18 @@ func assertEqualIdentity(t *testing.T, expect hpfeeds.Identity, got hpfeeds.Iden
 	}
 	if !testEq(expect.PubChannels, got.PubChannels) {
 		t.Errorf("Mismatched PubChannels:\n\tgot %v \n\twant %v", got.PubChannels, expect.PubChannels)
+	}
+}
+
+func assertEqualUser(t *testing.T, expect User, got User) {
+	if expect.Name != got.Name {
+		t.Errorf("Mismatched Names:\n\tgot %s \n\twant %s", got.Name, expect.Name)
+	}
+	if expect.Hash != got.Hash {
+		t.Errorf("Mismatched Hashes:\n\tgot %s \n\twant %s", got.Hash, expect.Hash)
+	}
+	if expect.Role != got.Role {
+		t.Errorf("Mismatched Roles:\n\tgot %s \n\twant %s", got.Role, expect.Role)
 	}
 }
 
