@@ -7,9 +7,14 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+// Users for the web app
+var UserBucket = []byte("users")
+
+// Identities for hpfeeds
 var IDBucket = []byte("identities")
 
 var BUCKETS = []string{
+	string(UserBucket),
 	string(IDBucket),
 }
 
@@ -17,26 +22,13 @@ type BoltStore struct {
 	db *bolt.DB
 }
 
+// Close calls the underlying Bolt db Close()
 func (bs BoltStore) Close() {
 	bs.db.Close()
 }
 
-func (bs BoltStore) GetKeys() ([]string, error) {
-	var keys []string
-	err := bs.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(IDBucket)
-
-		c := b.Cursor()
-
-		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			keys = append(keys, string(k))
-		}
-
-		return nil
-	})
-	return keys, err
-}
-
+// GetAllIdentities returns a list of all hpfeeds Identity objects stored in the
+// db.
 func (bs BoltStore) GetAllIdentities() ([]*hpfeeds.Identity, error) {
 	var idents []*hpfeeds.Identity
 	err := bs.db.View(func(tx *bolt.Tx) error {
@@ -59,8 +51,8 @@ func (bs BoltStore) GetAllIdentities() ([]*hpfeeds.Identity, error) {
 	return idents, err
 }
 
-// Used to identify a user and their identity within hpfeeds broker.
-func GetIdentity(bs BoltStore, ident string) (*hpfeeds.Identity, error) {
+// GetIdentity takes an ident and returns their whole identity object.
+func (bs BoltStore) GetIdentity(ident string) (*hpfeeds.Identity, error) {
 	var i *hpfeeds.Identity
 	err := bs.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(IDBucket)
@@ -75,7 +67,8 @@ func GetIdentity(bs BoltStore, ident string) (*hpfeeds.Identity, error) {
 	return i, err
 }
 
-func SaveIdentity(bs BoltStore, id hpfeeds.Identity) error {
+// SaveIdentity persists an hpfeeds.Identity in BoltStore.
+func (bs BoltStore) SaveIdentity(id hpfeeds.Identity) error {
 	err := bs.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(IDBucket)
 		buf, err := json.Marshal(id)
@@ -85,7 +78,8 @@ func SaveIdentity(bs BoltStore, id hpfeeds.Identity) error {
 	return err
 }
 
-func DeleteIdentity(bs BoltStore, ident string) error {
+// DeleteIdentity removes any saved Identity object matching the ident.
+func (bs BoltStore) DeleteIdentity(ident string) error {
 	err := bs.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(IDBucket)
 		b.Delete([]byte(ident))
@@ -94,6 +88,8 @@ func DeleteIdentity(bs BoltStore, ident string) error {
 	return err
 }
 
+// DeleteAllIdeneties deletes the Bolt bucket holding identities and recreates
+// it, essentially deleting all objects.
 func (bs BoltStore) DeleteAllIdentities() error {
 	err := bs.db.Update(func(tx *bolt.Tx) error {
 		err := tx.DeleteBucket(IDBucket)

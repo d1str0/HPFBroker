@@ -41,7 +41,7 @@ func apiIdentDELETEHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Req
 		}
 
 		// Delete user
-		i, err := GetIdentity(bs, ident)
+		i, err := bs.GetIdentity(ident)
 		if err != nil {
 			log.Printf("apiIdentDELETEHandler, GetIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -55,7 +55,7 @@ func apiIdentDELETEHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Req
 			return
 		}
 
-		err = DeleteIdentity(bs, ident)
+		err = bs.DeleteIdentity(ident)
 		if err != nil {
 			log.Printf("apiIdentDELETEHandler, DeleteIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -76,7 +76,7 @@ func apiIdentGETHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 		if ident == "" {
 			idents, err := bs.GetAllIdentities()
 			if err != nil {
-				log.Printf("apiIdentGETHandler, GetKeys(), %s", err.Error())
+				log.Printf("apiIdentGETHandler, GetAllIdentities(), %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			w.WriteHeader(http.StatusOK)
@@ -86,7 +86,7 @@ func apiIdentGETHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 		}
 
 		// Return identity if found
-		i, err := GetIdentity(bs, ident)
+		i, err := bs.GetIdentity(ident)
 		buf, err := json.Marshal(i)
 		if err != nil {
 			log.Printf("apiIdentGETHandler, json.Marshal(), %s", err.Error())
@@ -117,7 +117,7 @@ func apiIdentPUTHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 		}
 
 		// Check to see if this ident already exists
-		i, err := GetIdentity(bs, ident)
+		i, err := bs.GetIdentity(ident)
 		if err != nil {
 			log.Printf("apiIdentPUTHandler, GetIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -147,7 +147,7 @@ func apiIdentPUTHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		err = SaveIdentity(bs, id)
+		err = bs.SaveIdentity(id)
 		if err != nil {
 			log.Printf("apiIdentPUTHandler, SaveIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

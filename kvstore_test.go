@@ -11,7 +11,7 @@ func TestKvstore_BoltStore(t *testing.T) {
 	defer bs.Close()
 
 	t.Run("Get Nonexistant", func(t *testing.T) {
-		i, err := GetIdentity(bs, "test")
+		i, err := bs.GetIdentity("test")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -26,22 +26,22 @@ func TestKvstore_BoltStore(t *testing.T) {
 	id3 := hpfeeds.Identity{Ident: "test-ident3", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
 
 	t.Run("Save Identity", func(t *testing.T) {
-		err := SaveIdentity(bs, id1)
+		err := bs.SaveIdentity(id1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = SaveIdentity(bs, id2)
+		err = bs.SaveIdentity(id2)
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = SaveIdentity(bs, id3)
+		err = bs.SaveIdentity(id3)
 		if err != nil {
 			t.Fatal(err)
 		}
 	})
 
 	t.Run("Get Existing", func(t *testing.T) {
-		i, err := GetIdentity(bs, "test-ident")
+		i, err := bs.GetIdentity("test-ident")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -52,20 +52,6 @@ func TestKvstore_BoltStore(t *testing.T) {
 
 		// expected, got
 		assertEqualIdentity(t, id1, *i)
-	})
-
-	t.Run("Get Keys", func(t *testing.T) {
-		keys, err := bs.GetKeys()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(keys) != 3 {
-			t.Error("Unexpected number of keys returned")
-		}
-		expect := []string{"test-ident", "test-ident2", "test-ident3"}
-		if !testEq(expect, keys) {
-			t.Error("Expected keys do not match keys returned")
-		}
 	})
 
 	t.Run("Get All Identities", func(t *testing.T) {
@@ -79,11 +65,11 @@ func TestKvstore_BoltStore(t *testing.T) {
 	})
 
 	t.Run("Delete", func(t *testing.T) {
-		err := DeleteIdentity(bs, "test-ident")
+		err := bs.DeleteIdentity("test-ident")
 		if err != nil {
 			t.Fatal(err)
 		}
-		i, err := GetIdentity(bs, "test-ident")
+		i, err := bs.GetIdentity("test-ident")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -92,7 +78,7 @@ func TestKvstore_BoltStore(t *testing.T) {
 		}
 
 		// Should also work on non existent ident.
-		err = DeleteIdentity(bs, "test-ident4")
+		err = bs.DeleteIdentity("test-ident4")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -104,7 +90,7 @@ func TestKvstore_BoltStore(t *testing.T) {
 			t.Fatal(err)
 		}
 		// Test by getting something that was there
-		i, err := GetIdentity(bs, "test-ident2")
+		i, err := bs.GetIdentity("test-ident2")
 		if err != nil {
 			t.Fatal(err)
 		}

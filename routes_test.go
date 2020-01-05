@@ -51,8 +51,8 @@ func TestRoutes_apiIdentHandler(t *testing.T) {
 	id2 := hpfeeds.Identity{Ident: "test-ident1", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
 
 	t.Run("GET", func(t *testing.T) {
-		SaveIdentity(bs, id)
-		SaveIdentity(bs, id2)
+		bs.SaveIdentity(id)
+		bs.SaveIdentity(id2)
 
 		// FAIL
 		t.Run("User Not Found", func(t *testing.T) {
@@ -84,8 +84,8 @@ func TestRoutes_apiIdentHandler(t *testing.T) {
 
 			testRequestObj(t, router, req, http.StatusOK, []hpfeeds.Identity{id, id2})
 		})
-		DeleteIdentity(bs, id.Ident)
-		DeleteIdentity(bs, id2.Ident)
+		bs.DeleteIdentity(id.Ident)
+		bs.DeleteIdentity(id2.Ident)
 	})
 
 	t.Run("PUT", func(t *testing.T) {
@@ -135,7 +135,7 @@ func TestRoutes_apiIdentHandler(t *testing.T) {
 
 			testRequestObj(t, router, req, http.StatusCreated, id)
 		})
-		defer DeleteIdentity(bs, "test-ident")
+		defer bs.DeleteIdentity("test-ident")
 
 		// SUCCESS
 		t.Run("Update Ident", func(t *testing.T) {
@@ -173,7 +173,7 @@ func TestRoutes_apiIdentHandler(t *testing.T) {
 			testRequest(t, router, req, http.StatusNoContent, "")
 		})
 
-		SaveIdentity(bs, id)
+		bs.SaveIdentity(id)
 
 		// SUCCESS
 		t.Run("Delete One", func(t *testing.T) {
