@@ -1,4 +1,4 @@
-package api
+package main
 
 import (
 	"encoding/json"
@@ -9,9 +9,6 @@ import (
 	"github.com/d1str0/hpfeeds"
 	"github.com/gorilla/mux"
 )
-
-const ErrMissingIdentifier = "Missing identifier in URI" // 400
-const ErrIdentNotFound = "Ident not found"               // 404
 
 func IdentDELETEHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +39,7 @@ func IdentDELETEHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 		// If it doesn't already exist, return 404.
 		if i == nil {
 			w.WriteHeader(http.StatusNotFound)
-			http.Error(w, ErrIdentNotFound, http.StatusNotFound)
+			http.Error(w, ErrNotFound, http.StatusNotFound)
 			return
 		}
 
