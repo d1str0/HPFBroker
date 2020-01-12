@@ -1,16 +1,10 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/d1str0/hpfeeds"
-	"github.com/gorilla/mux"
 )
 
 func TestIdentHandler(t *testing.T) {
@@ -32,7 +26,7 @@ func TestIdentHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			testRequest(t, router, req, http.StatusNotFound, ErrIdentNotFound)
+			testRequest(t, router, req, http.StatusNotFound, ErrNotFound)
 		})
 
 		// SUCCESS
@@ -162,58 +156,8 @@ func TestIdentHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			testRequest(t, router, req, http.StatusNotFound, ErrIdentNotFound)
+			testRequest(t, router, req, http.StatusNotFound, ErrNotFound)
 		})
 
 	})
-}
-
-// encodeBody is used to encode a request body
-func encodeBody(t *testing.T, obj interface{}) io.Reader {
-	buf := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(buf)
-	if err := enc.Encode(obj); err != nil {
-		t.Fatalf("error encoding obj: %#v", err)
-	}
-	return buf
-}
-
-func testRequest(t *testing.T, router *mux.Router, req *http.Request, expectedStatus int, expected string) {
-	rr := httptest.NewRecorder()
-
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != expectedStatus {
-		t.Errorf("handler returned wrong status code:\n\tgot %v \n\twant %v",
-			status, expectedStatus)
-	}
-
-	respBody := strings.TrimSuffix(rr.Body.String(), "\n")
-	if respBody != expected {
-		t.Errorf("handler returned unexpected body:\n\tgot %s \n\twant %s",
-			respBody, expected)
-	}
-}
-
-func testRequestObj(t *testing.T, router *mux.Router, req *http.Request, expectedStatus int, obj interface{}) {
-	rr := httptest.NewRecorder()
-
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != expectedStatus {
-		t.Errorf("handler returned wrong status code:\n\tgot %v \n\twant %v",
-			status, expectedStatus)
-	}
-
-	s, err := json.Marshal(obj)
-	if err != nil {
-		t.Fatalf("Error marshaling: %#v", err)
-	}
-	expected := string(s)
-
-	respBody := strings.TrimSuffix(rr.Body.String(), "\n")
-	if respBody != expected {
-		t.Errorf("handler returned unexpected body:\n\tgot %s \n\twant %s",
-			respBody, expected)
-	}
 }

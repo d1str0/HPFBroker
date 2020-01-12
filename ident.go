@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func IdentDELETEHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) {
+func apiIdentDELETEHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		ident := vars["id"]
@@ -55,7 +55,7 @@ func IdentDELETEHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Reques
 
 }
 
-func IdentGETHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) {
+func apiIdentGETHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		ident := vars["id"]
@@ -81,7 +81,7 @@ func IdentGETHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) 
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
 			if i == nil {
-				http.Error(w, "Ident not found", http.StatusNotFound)
+				http.Error(w, ErrNotFound, http.StatusNotFound)
 			} else {
 				w.WriteHeader(http.StatusOK)
 				w.Header().Set("Content-Type", "application/json")
@@ -91,7 +91,7 @@ func IdentGETHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func IdentPUTHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) {
+func apiIdentPUTHandler(bs BoltStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var create bool
 

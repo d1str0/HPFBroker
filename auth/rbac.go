@@ -13,15 +13,15 @@ var (
 	PermUserWrite = gorbac.NewStdPermission("user_write")
 
 	// Just for hpfeeds
-	roleHPFReader = "hpf_reader"
-	roleHPFAdmin  = "hpf_admin"
+	RoleHPFReader = "hpf_reader"
+	RoleHPFAdmin  = "hpf_admin"
 
 	// Just for user management
-	roleUserReader = "user_reader"
-	roleUserAdmin  = "user_admin"
+	RoleUserReader = "user_reader"
+	RoleUserAdmin  = "user_admin"
 
 	// Can control both
-	roleSuperAdmin = "super_admin"
+	RoleSuperAdmin = "super_admin"
 )
 
 // rbac returns a new instance of gorbac.RBAC for Role-Based Access Controls.
@@ -29,31 +29,31 @@ func rbac() *gorbac.RBAC {
 	r := gorbac.New()
 
 	// Basic READ rights for HPFeeds
-	rhpfr := gorbac.NewStdRole(roleHPFReader)
+	rhpfr := gorbac.NewStdRole(RoleHPFReader)
 	rhpfr.Assign(PermHPFRead)
 	r.Add(rhpfr)
 
 	// Read and write for HPFeeds
-	rhpfa := gorbac.NewStdRole(roleHPFAdmin)
+	rhpfa := gorbac.NewStdRole(RoleHPFAdmin)
 	rhpfa.Assign(PermHPFRead)
 	rhpfa.Assign(PermHPFWrite)
 	r.Add(rhpfa)
 
 	// Basic READ for HPFBroker users
-	rur := gorbac.NewStdRole(roleUserReader)
+	rur := gorbac.NewStdRole(RoleUserReader)
 	rur.Assign(PermUserRead)
 	r.Add(rur)
 
 	// Read and write for HPFBroker users
-	rua := gorbac.NewStdRole(roleUserAdmin)
+	rua := gorbac.NewStdRole(RoleUserAdmin)
 	rua.Assign(PermUserRead)
 	rua.Assign(PermUserWrite)
 	r.Add(rua)
 
 	// Super admin inherits both HPF Admin and User Admin
-	rsa := gorbac.NewStdRole(roleSuperAdmin)
+	rsa := gorbac.NewStdRole(RoleSuperAdmin)
 	r.Add(rsa)
-	r.SetParents(roleSuperAdmin, []string{roleUserAdmin, roleHPFAdmin})
+	r.SetParents(RoleSuperAdmin, []string{RoleUserAdmin, RoleHPFAdmin})
 
 	return r
 }

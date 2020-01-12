@@ -1,16 +1,9 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
-
-	"github.com/d1str0/hpfeeds"
-	"github.com/gorilla/mux"
 )
 
 func TestRoutes_statusHandler(t *testing.T) {
