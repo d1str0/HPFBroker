@@ -6,8 +6,9 @@ import (
 
 type User struct {
 	Name string
-	Hash string // Will always be an encoding of a password hash
 	Role string // RBAC role
+
+	hash string // Will always be an encoding of a password hash
 }
 
 // NewUser creates a user object with a hashed version of the passed in
@@ -17,15 +18,26 @@ func NewUser(name, password, role string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &User{Name: name, Hash: hash, Role: role}, nil
+	return &User{Name: name, hash: hash, Role: role}, nil
 }
 
 // Authenticate takes a password as input, and compares the password hashes to
 // determine if they should be authenticated.
 func (u User) Authenticate(password string) (bool, error) {
-	match, err := argon2id.ComparePasswordAndHash(password, u.Hash)
+	match, err := argon2id.ComparePasswordAndHash(password, u.hash)
 	if err != nil {
 		return false, err
 	}
 	return match, nil
+}
+
+// Set password takes a plaintext password and stores the hash of it in the
+// object.
+func (u User) SetPassword(password string) error {
+	hash, err := argon2id.CreateHash(password, argon2id.DefaultParams)
+	if err != nil {
+		return err
+	}
+	u.hash = hash
+	return nil
 }
