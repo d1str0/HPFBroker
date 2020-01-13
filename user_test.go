@@ -17,6 +17,8 @@ func TestUser(t *testing.T) {
 	})
 
 	t.Run("Authenticate", func(t *testing.T) {
+		u, _ := NewUser("name1", "pass1", "role1")
+
 		m, err := u.Authenticate("wrong")
 		if err != nil {
 			t.Fatal(err)
