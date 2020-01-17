@@ -4,6 +4,8 @@ github.com/alexedwards/argon2id v0.0.0-20190612080829-01a59b2b8802 h1:RwMM1q/QSK
 github.com/alexedwards/argon2id v0.0.0-20190612080829-01a59b2b8802/go.mod h1:4dsm7ufQm1Gwl8S2ss57u+2J7KlxIL2QUmFGlGtWogY=
 github.com/d1str0/hpfeeds v0.1.4 h1:y8ogGmQ1SORHqKpL3LdE2SjRV+i19ydN1sa8REVGRU0=
 github.com/d1str0/hpfeeds v0.1.4/go.mod h1:Vz6oY+o+BF++pu8d/Aj9fjeVWMTGQjOIi2Ow/2+kLSY=
+github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
+github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/gorilla/mux v1.7.3 h1:gnP5JzjVOuiZD07fKKToCAOjS0yOpj/qPETTXCCS6hw=
 github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/mikespook/gorbac v2.1.0+incompatible h1:otWotQcs8ehjzn6DBBj+lxRu9QOnE9a3Cp+/EMUpwhg=
