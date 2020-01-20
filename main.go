@@ -48,6 +48,7 @@ func main() {
 	flag.StringVar(&configFilename, "config", "config.toml", "File path for the config file (TOML).")
 	flag.Parse()
 
+	// TODO: Rename this var.
 	var t tomlConfig
 
 	_, err := toml.DecodeFile(configFilename, &t)

@@ -5,7 +5,7 @@ import (
 )
 
 func Test_RBAC(t *testing.T) {
-	r := rbac()
+	r := InitRBAC()
 
 	// Test "admin" role
 

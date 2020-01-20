@@ -25,7 +25,7 @@ var (
 )
 
 // rbac returns a new instance of gorbac.RBAC for Role-Based Access Controls.
-func rbac() *gorbac.RBAC {
+func InitRBAC() *gorbac.RBAC {
 	r := gorbac.New()
 
 	// Basic READ rights for HPFeeds
