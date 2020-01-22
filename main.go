@@ -62,18 +62,15 @@ func main() {
 
 	dbc := t.DBConfig
 
-	// Open up the boltDB file
-	db, err := bolt.Open(dbc.Path, 0666, nil)
+	// Open our database file.
+	db, err := Open(dbc.Path)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	// For use with HTTP handlers
-	bs := BoltStore{db: db}
-
 	// Prepare DB to ensure we have the appropriate buckets ready
-	err = initializeDB(bs)
+	err = initializeDB(db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,7 +80,7 @@ func main() {
 	broker := &hpfeeds.Broker{
 		Name: bc.Name,
 		Port: bc.Port,
-		DB:   bs,
+		DB:   db,
 	}
 	broker.SetDebugLogger(log.Print)
 	broker.SetInfoLogger(log.Print)
@@ -93,7 +90,7 @@ func main() {
 	// Run http server concurrently
 	go func() {
 		// Load routes for the server
-		mux := NewMux(bs)
+		mux := NewMux(db)
 
 		s := http.Server{
 			Addr:    hc.Addr,
@@ -110,7 +107,7 @@ func main() {
 }
 
 // Initialize the database and assert certain buckets exist.
-func initializeDB(bs BoltStore) error {
+func initializeDB(db *DB) error {
 	err := bs.db.Update(func(tx *bolt.Tx) error {
 		for _, b := range BUCKETS {
 			_, err := tx.CreateBucketIfNotExists([]byte(b))
@@ -123,7 +120,7 @@ func initializeDB(bs BoltStore) error {
 	return err
 }
 
-func (bs BoltStore) Identify(ident string) (*hpfeeds.Identity, error) {
+func (db *DB) Identify(ident string) (*hpfeeds.Identity, error) {
 	var i hpfeeds.Identity
 	err := bs.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("identities"))

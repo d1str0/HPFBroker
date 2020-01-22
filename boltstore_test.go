@@ -7,12 +7,12 @@ import (
 )
 
 func TestKvstore_BoltStore(t *testing.T) {
-	bs := getTestDB(t)
-	defer bs.Close()
+	db := getTestDB(t)
+	defer db.Close()
 
 	t.Run("IDENTITIES", func(t *testing.T) {
 		t.Run("Get Nonexistant", func(t *testing.T) {
-			i, err := bs.GetIdentity("test")
+			i, err := db.GetIdentity("test")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27,22 +27,22 @@ func TestKvstore_BoltStore(t *testing.T) {
 		id3 := hpfeeds.Identity{Ident: "test-ident3", Secret: "test-secret", SubChannels: []string{}, PubChannels: []string{}}
 
 		t.Run("Save Identity", func(t *testing.T) {
-			err := bs.SaveIdentity(id1)
+			err := db.SaveIdentity(id1)
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = bs.SaveIdentity(id2)
+			err = db.SaveIdentity(id2)
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = bs.SaveIdentity(id3)
+			err = db.SaveIdentity(id3)
 			if err != nil {
 				t.Fatal(err)
 			}
 		})
 
 		t.Run("Get Existing", func(t *testing.T) {
-			i, err := bs.GetIdentity("test-ident")
+			i, err := db.GetIdentity("test-ident")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -56,7 +56,7 @@ func TestKvstore_BoltStore(t *testing.T) {
 		})
 
 		t.Run("Get All Identities", func(t *testing.T) {
-			i, err := bs.GetAllIdentities()
+			i, err := db.GetAllIdentities()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -66,11 +66,11 @@ func TestKvstore_BoltStore(t *testing.T) {
 		})
 
 		t.Run("Delete", func(t *testing.T) {
-			err := bs.DeleteIdentity("test-ident")
+			err := db.DeleteIdentity("test-ident")
 			if err != nil {
 				t.Fatal(err)
 			}
-			i, err := bs.GetIdentity("test-ident")
+			i, err := db.GetIdentity("test-ident")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -79,19 +79,19 @@ func TestKvstore_BoltStore(t *testing.T) {
 			}
 
 			// Should also work on non existent ident.
-			err = bs.DeleteIdentity("test-ident4")
+			err = db.DeleteIdentity("test-ident4")
 			if err != nil {
 				t.Fatal(err)
 			}
 		})
 
 		t.Run("Delete All Identities", func(t *testing.T) {
-			err := bs.DeleteAllIdentities()
+			err := db.DeleteAllIdentities()
 			if err != nil {
 				t.Fatal(err)
 			}
 			// Test by getting something that was there
-			i, err := bs.GetIdentity("test-ident2")
+			i, err := db.GetIdentity("test-ident2")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -103,7 +103,7 @@ func TestKvstore_BoltStore(t *testing.T) {
 
 	t.Run("USERS", func(t *testing.T) {
 		t.Run("Get Nonexistant", func(t *testing.T) {
-			u, err := bs.GetUser("test")
+			u, err := db.GetUser("test")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -118,22 +118,22 @@ func TestKvstore_BoltStore(t *testing.T) {
 		u3 := User{Name: "test-name3", Hash: "test-hash", Role: "admin"}
 
 		t.Run("Save User", func(t *testing.T) {
-			err := bs.SaveUser(u1)
+			err := db.SaveUser(u1)
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = bs.SaveUser(u2)
+			err = db.SaveUser(u2)
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = bs.SaveUser(u3)
+			err = db.SaveUser(u3)
 			if err != nil {
 				t.Fatal(err)
 			}
 		})
 
 		t.Run("Get Existing", func(t *testing.T) {
-			u, err := bs.GetUser("test-name")
+			u, err := db.GetUser("test-name")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -147,7 +147,7 @@ func TestKvstore_BoltStore(t *testing.T) {
 		})
 
 		t.Run("Get All Users", func(t *testing.T) {
-			u, err := bs.GetAllUsers()
+			u, err := db.GetAllUsers()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -157,11 +157,11 @@ func TestKvstore_BoltStore(t *testing.T) {
 		})
 
 		t.Run("Delete", func(t *testing.T) {
-			err := bs.DeleteIdentity("test-user")
+			err := db.DeleteIdentity("test-user")
 			if err != nil {
 				t.Fatal(err)
 			}
-			u, err := bs.GetIdentity("test-user")
+			u, err := db.GetIdentity("test-user")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -170,19 +170,19 @@ func TestKvstore_BoltStore(t *testing.T) {
 			}
 
 			// Should also work on non existent ident.
-			err = bs.DeleteIdentity("test-user4")
+			err = db.DeleteIdentity("test-user4")
 			if err != nil {
 				t.Fatal(err)
 			}
 		})
 
 		t.Run("Delete All Users", func(t *testing.T) {
-			err := bs.DeleteAllUsers()
+			err := db.DeleteAllUsers()
 			if err != nil {
 				t.Fatal(err)
 			}
 			// Test by getting something that was there
-			u, err := bs.GetIdentity("test-user2")
+			u, err := db.GetIdentity("test-user2")
 			if err != nil {
 				t.Fatal(err)
 			}

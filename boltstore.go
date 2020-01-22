@@ -18,20 +18,46 @@ var BUCKETS = []string{
 	string(IDBucket),
 }
 
-type BoltStore struct {
-	db *bolt.DB
+type DB struct {
+	*bolt.DB
 }
 
 // Close calls the underlying Bolt db Close()
-func (bs BoltStore) Close() {
-	bs.db.Close()
+func (db DB) Close() {
+	db.Close()
+}
+
+// Open will open a bolt.DB and return a local DB
+func Open(path string) (*DB, error) {
+	// Open up the boltDB file
+	db, err := bolt.Open(path, 0666, nil)
+	return &DB{db}, err
+}
+
+// Initialize the database and assert certain buckets exist.
+func initializeDB(db *DB) error {
+	err := bs.db.Update(func(tx *bolt.Tx) error {
+		for _, b := range BUCKETS {
+			_, err := tx.CreateBucketIfNotExists([]byte(b))
+			if err != nil {
+				return fmt.Errorf("create bucket: %s", err)
+			}
+		}
+		return nil
+	})
+	return err
+}
+
+// Identify will return an identity object if one is found.
+func (db *DB) Identify(ident string) (*hpfeeds.Identity, error) {
+	return GetIdentity(ident)
 }
 
 // GetAllIdentities returns a list of all hpfeeds Identity objects stored in the
 // db.
-func (bs BoltStore) GetAllIdentities() ([]*hpfeeds.Identity, error) {
+func (db DB) GetAllIdentities() ([]*hpfeeds.Identity, error) {
 	var idents []*hpfeeds.Identity
-	err := bs.db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(IDBucket)
 
 		c := b.Cursor()
@@ -52,9 +78,9 @@ func (bs BoltStore) GetAllIdentities() ([]*hpfeeds.Identity, error) {
 }
 
 // GetIdentity takes an ident and returns their whole identity object.
-func (bs BoltStore) GetIdentity(ident string) (*hpfeeds.Identity, error) {
+func (db DB) GetIdentity(ident string) (*hpfeeds.Identity, error) {
 	var i *hpfeeds.Identity
-	err := bs.db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(IDBucket)
 		v := b.Get([]byte(ident))
 		if v == nil {
@@ -68,8 +94,8 @@ func (bs BoltStore) GetIdentity(ident string) (*hpfeeds.Identity, error) {
 }
 
 // SaveIdentity persists an hpfeeds.Identity in BoltStore.
-func (bs BoltStore) SaveIdentity(id hpfeeds.Identity) error {
-	err := bs.db.Update(func(tx *bolt.Tx) error {
+func (db DB) SaveIdentity(id hpfeeds.Identity) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(IDBucket)
 		buf, err := json.Marshal(id)
 		b.Put([]byte(id.Ident), buf)
@@ -79,8 +105,8 @@ func (bs BoltStore) SaveIdentity(id hpfeeds.Identity) error {
 }
 
 // DeleteIdentity removes any saved Identity object matching the ident.
-func (bs BoltStore) DeleteIdentity(ident string) error {
-	err := bs.db.Update(func(tx *bolt.Tx) error {
+func (db DB) DeleteIdentity(ident string) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(IDBucket)
 		b.Delete([]byte(ident))
 		return nil
@@ -90,8 +116,8 @@ func (bs BoltStore) DeleteIdentity(ident string) error {
 
 // DeleteAllIdeneties deletes the Bolt bucket holding identities and recreates
 // it, essentially deleting all objects.
-func (bs BoltStore) DeleteAllIdentities() error {
-	err := bs.db.Update(func(tx *bolt.Tx) error {
+func (db DB) DeleteAllIdentities() error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		err := tx.DeleteBucket(IDBucket)
 		if err != nil {
 			return err
@@ -108,9 +134,9 @@ func (bs BoltStore) DeleteAllIdentities() error {
 
 // GetAllUsers returns a list of all hpfeeds Identity objects stored in the
 // db.
-func (bs BoltStore) GetAllUsers() ([]*User, error) {
+func (db DB) GetAllUsers() ([]*User, error) {
 	var users []*User
-	err := bs.db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(UserBucket)
 
 		c := b.Cursor()
@@ -131,9 +157,9 @@ func (bs BoltStore) GetAllUsers() ([]*User, error) {
 }
 
 // GetUser takes an username and returns their whole user object.
-func (bs BoltStore) GetUser(name string) (*User, error) {
+func (db DB) GetUser(name string) (*User, error) {
 	var u *User
-	err := bs.db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(UserBucket)
 		v := b.Get([]byte(name))
 		if v == nil {
@@ -147,8 +173,8 @@ func (bs BoltStore) GetUser(name string) (*User, error) {
 }
 
 // SaveUser persists a User in BoltStore.
-func (bs BoltStore) SaveUser(u User) error {
-	err := bs.db.Update(func(tx *bolt.Tx) error {
+func (db DB) SaveUser(u User) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(UserBucket)
 		buf, err := json.Marshal(u)
 		b.Put([]byte(u.Name), buf)
@@ -158,8 +184,8 @@ func (bs BoltStore) SaveUser(u User) error {
 }
 
 // DeleteUser removes any saved User object matching the username
-func (bs BoltStore) DeleteUser(name string) error {
-	err := bs.db.Update(func(tx *bolt.Tx) error {
+func (db DB) DeleteUser(name string) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(UserBucket)
 		b.Delete([]byte(name))
 		return nil
@@ -169,8 +195,8 @@ func (bs BoltStore) DeleteUser(name string) error {
 
 // DeleteAllUsers deletes the Bolt bucket holding users and recreates
 // it, essentially deleting all objects.
-func (bs BoltStore) DeleteAllUsers() error {
-	err := bs.db.Update(func(tx *bolt.Tx) error {
+func (db DB) DeleteAllUsers() error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		err := tx.DeleteBucket(UserBucket)
 		if err != nil {
 			return err
