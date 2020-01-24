@@ -1,4 +1,4 @@
-package main
+package hpfbroker
 
 import (
 	"testing"
@@ -6,9 +6,13 @@ import (
 	"github.com/d1str0/hpfeeds"
 )
 
+const TestDBPath = "test.db"
+
 func TestKvstore_BoltStore(t *testing.T) {
-	db := getTestDB(t)
-	defer db.Close()
+	db, err := OpenDB(TestDBPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("IDENTITIES", func(t *testing.T) {
 		t.Run("Get Nonexistant", func(t *testing.T) {
@@ -191,7 +195,7 @@ func TestKvstore_BoltStore(t *testing.T) {
 			}
 		})
 	})
-
+	db.Close()
 }
 
 func assertEqualIdentity(t *testing.T, expect hpfeeds.Identity, got hpfeeds.Identity) {
@@ -222,7 +226,6 @@ func assertEqualUser(t *testing.T, expect User, got User) {
 }
 
 func testEq(a, b []string) bool {
-
 	// If one is nil, the other must also be nil.
 	if (a == nil) != (b == nil) {
 		return false

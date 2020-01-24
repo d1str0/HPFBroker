@@ -2,6 +2,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/alexedwards/argon2id v0.0.0-20190612080829-01a59b2b8802 h1:RwMM1q/QSKYIGbHfOkf843hE8sSUJtf1dMwFPtEDmm0=
 github.com/alexedwards/argon2id v0.0.0-20190612080829-01a59b2b8802/go.mod h1:4dsm7ufQm1Gwl8S2ss57u+2J7KlxIL2QUmFGlGtWogY=
+github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
+github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
 github.com/d1str0/hpfeeds v0.1.4 h1:y8ogGmQ1SORHqKpL3LdE2SjRV+i19ydN1sa8REVGRU0=
 github.com/d1str0/hpfeeds v0.1.4/go.mod h1:Vz6oY+o+BF++pu8d/Aj9fjeVWMTGQjOIi2Ow/2+kLSY=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=

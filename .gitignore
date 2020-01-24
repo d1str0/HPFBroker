@@ -1,4 +1,5 @@
 HPFBroker
+cmd/cmd
 
 # bbolt uses a DB file for persistence. This should never be committed.
 bolt.db

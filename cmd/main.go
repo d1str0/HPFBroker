@@ -1,7 +1,8 @@
 package main
 
 import (
-	"encoding/json"
+	hpf "github.com/d1str0/HPFBroker"
+
 	"flag"
 	"fmt"
 	"log"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/d1str0/hpfeeds"
-	bolt "go.etcd.io/bbolt"
 )
 
 const Version = "v0.0.1"
@@ -63,17 +63,11 @@ func main() {
 	dbc := t.DBConfig
 
 	// Open our database file.
-	db, err := Open(dbc.Path)
+	db, err := hpf.OpenDB(dbc.Path)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
-
-	// Prepare DB to ensure we have the appropriate buckets ready
-	err = initializeDB(db)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	bc := t.BrokerConfig
 	// Configure hpfeeds broker server
@@ -90,7 +84,7 @@ func main() {
 	// Run http server concurrently
 	go func() {
 		// Load routes for the server
-		mux := NewMux(db)
+		mux := hpf.NewMux(db)
 
 		s := http.Server{
 			Addr:    hc.Addr,
@@ -104,29 +98,4 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-// Initialize the database and assert certain buckets exist.
-func initializeDB(db *DB) error {
-	err := bs.db.Update(func(tx *bolt.Tx) error {
-		for _, b := range BUCKETS {
-			_, err := tx.CreateBucketIfNotExists([]byte(b))
-			if err != nil {
-				return fmt.Errorf("create bucket: %s", err)
-			}
-		}
-		return nil
-	})
-	return err
-}
-
-func (db *DB) Identify(ident string) (*hpfeeds.Identity, error) {
-	var i hpfeeds.Identity
-	err := bs.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("identities"))
-		v := b.Get([]byte(ident))
-		err := json.Unmarshal(v, &i)
-		return err
-	})
-	return &i, err
 }

@@ -1,4 +1,4 @@
-package main
+package hpfbroker
 
 import (
 	"github.com/alexedwards/argon2id"

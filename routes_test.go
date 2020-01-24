@@ -1,4 +1,4 @@
-package main
+package hpfbroker
 
 import (
 	"net/http"
@@ -29,7 +29,7 @@ func TestRoutes_statusHandler(t *testing.T) {
 	}
 
 	// Check the response body is what we expect.
-	expected := Version
+	expected := "I'm online D:"
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
