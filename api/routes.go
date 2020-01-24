@@ -19,6 +19,7 @@ func statusHandler() func(w http.ResponseWriter, r *http.Request) {
 func router(sc *hpf.ServerContext) *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/status", statusHandler())
+	r.HandleFunc("/api/authenticate", AuthHandler(sc)).Methods("POST")
 	r.HandleFunc("/api/ident/", IdentGETHandler(sc)).Methods("GET")
 	r.HandleFunc("/api/ident/", IdentPUTHandler(sc)).Methods("PUT") // Funnel bad request for proper response.
 	r.HandleFunc("/api/ident/", IdentDELETEHandler(sc)).Methods("DELETE")
