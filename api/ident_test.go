@@ -1,32 +1,38 @@
-package hpfbroker
+package api
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
+	hpf "github.com/d1str0/HPFBroker"
+	auth "github.com/d1str0/HPFBroker/auth"
+
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/d1str0/hpfeeds"
-	"github.com/gorilla/mux"
 )
 
+const TestDBPath = ".test.db"
+
 func TestIdentHandler(t *testing.T) {
-	bs, err := OpenDB(TestDBPath)
+	var secret = &auth.JWTSecret{}
+	secret.SetSecret([]byte{0x0000000000000000000000000000000000000000000000000000000000000000})
+	db, err := hpf.OpenDB(TestDBPath)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer db.Close()
 
-	router := router(bs)
+	r := auth.InitRBAC()
+
+	sc := &hpf.ServerContext{Version: "69.420.80085", JWTSecret: secret, DB: db, RBAC: r}
+
+	router := router(sc)
 
 	id := hpfeeds.Identity{Ident: "test-ident", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
 	id2 := hpfeeds.Identity{Ident: "test-ident1", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
 
 	t.Run("GET", func(t *testing.T) {
-		bs.SaveIdentity(id)
-		bs.SaveIdentity(id2)
+		db.SaveIdentity(id)
+		db.SaveIdentity(id2)
 
 		// FAIL
 		t.Run("User Not Found", func(t *testing.T) {
@@ -58,8 +64,8 @@ func TestIdentHandler(t *testing.T) {
 
 			testRequestObj(t, router, req, http.StatusOK, []hpfeeds.Identity{id, id2})
 		})
-		bs.DeleteIdentity(id.Ident)
-		bs.DeleteIdentity(id2.Ident)
+		db.DeleteIdentity(id.Ident)
+		db.DeleteIdentity(id2.Ident)
 	})
 
 	t.Run("PUT", func(t *testing.T) {
@@ -109,7 +115,7 @@ func TestIdentHandler(t *testing.T) {
 
 			testRequestObj(t, router, req, http.StatusCreated, id)
 		})
-		defer bs.DeleteIdentity("test-ident")
+		defer db.DeleteIdentity("test-ident")
 
 		// SUCCESS
 		t.Run("Update Ident", func(t *testing.T) {
@@ -147,7 +153,7 @@ func TestIdentHandler(t *testing.T) {
 			testRequest(t, router, req, http.StatusNoContent, "")
 		})
 
-		bs.SaveIdentity(id)
+		db.SaveIdentity(id)
 
 		// SUCCESS
 		t.Run("Delete One", func(t *testing.T) {
@@ -170,55 +176,4 @@ func TestIdentHandler(t *testing.T) {
 		})
 
 	})
-	bs.Close()
-}
-
-// encodeBody is used to encode a request body
-func encodeBody(t *testing.T, obj interface{}) io.Reader {
-	buf := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(buf)
-	if err := enc.Encode(obj); err != nil {
-		t.Fatalf("error encoding obj: %#v", err)
-	}
-	return buf
-}
-
-func testRequest(t *testing.T, router *mux.Router, req *http.Request, expectedStatus int, expected string) {
-	rr := httptest.NewRecorder()
-
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != expectedStatus {
-		t.Errorf("handler returned wrong status code:\n\tgot %v \n\twant %v",
-			status, expectedStatus)
-	}
-
-	respBody := strings.TrimSuffix(rr.Body.String(), "\n")
-	if respBody != expected {
-		t.Errorf("handler returned unexpected body:\n\tgot %s \n\twant %s",
-			respBody, expected)
-	}
-}
-
-func testRequestObj(t *testing.T, router *mux.Router, req *http.Request, expectedStatus int, obj interface{}) {
-	rr := httptest.NewRecorder()
-
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != expectedStatus {
-		t.Errorf("handler returned wrong status code:\n\tgot %v \n\twant %v",
-			status, expectedStatus)
-	}
-
-	s, err := json.Marshal(obj)
-	if err != nil {
-		t.Fatalf("Error marshaling: %#v", err)
-	}
-	expected := string(s)
-
-	respBody := strings.TrimSuffix(rr.Body.String(), "\n")
-	if respBody != expected {
-		t.Errorf("handler returned unexpected body:\n\tgot %s \n\twant %s",
-			respBody, expected)
-	}
 }

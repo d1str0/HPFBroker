@@ -6,7 +6,7 @@ import (
 	"github.com/d1str0/hpfeeds"
 )
 
-const TestDBPath = "test.db"
+const TestDBPath = ".test.db"
 
 func TestKvstore_BoltStore(t *testing.T) {
 	db, err := OpenDB(TestDBPath)

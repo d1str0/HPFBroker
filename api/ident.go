@@ -1,6 +1,9 @@
-package hpfbroker
+package api
 
 import (
+	hpf "github.com/d1str0/HPFBroker"
+	//	auth "github.com/d1str0/HPFBroker/auth"
+
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,13 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const ErrMissingIdentifier = "Missing identifier in URI"          // 400
-const ErrMismatchedIdentifier = "URI doesn't match provided data" // 400
-const ErrBodyRequired = "Body is required for this endpoint"      // 400
-
-const ErrNotFound = "Resource Not Found" // 404
-
-func apiIdentDELETEHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
+func IdentDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		ident := vars["id"]
@@ -24,7 +21,7 @@ func apiIdentDELETEHandler(db *DB) func(w http.ResponseWriter, r *http.Request) 
 		// DELETE /api/ident/
 		// Delete all identities
 		if ident == "" {
-			err := db.DeleteAllIdentities()
+			err := sc.DB.DeleteAllIdentities()
 			if err != nil {
 				log.Printf("apiIdentDELETEHandler, DeleteAllIdentities(), %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -35,7 +32,7 @@ func apiIdentDELETEHandler(db *DB) func(w http.ResponseWriter, r *http.Request) 
 		}
 
 		// Delete user
-		i, err := db.GetIdentity(ident)
+		i, err := sc.DB.GetIdentity(ident)
 		if err != nil {
 			log.Printf("apiIdentDELETEHandler, GetIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -49,7 +46,7 @@ func apiIdentDELETEHandler(db *DB) func(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		err = db.DeleteIdentity(ident)
+		err = sc.DB.DeleteIdentity(ident)
 		if err != nil {
 			log.Printf("apiIdentDELETEHandler, DeleteIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -61,14 +58,14 @@ func apiIdentDELETEHandler(db *DB) func(w http.ResponseWriter, r *http.Request) 
 
 }
 
-func apiIdentGETHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
+func IdentGETHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		ident := vars["id"]
 
 		// "/api/ident/"
 		if ident == "" {
-			idents, err := db.GetAllIdentities()
+			idents, err := sc.DB.GetAllIdentities()
 			if err != nil {
 				log.Printf("apiIdentGETHandler, GetAllIdentities(), %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -80,7 +77,7 @@ func apiIdentGETHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Return identity if found
-		i, err := db.GetIdentity(ident)
+		i, err := sc.DB.GetIdentity(ident)
 		buf, err := json.Marshal(i)
 		if err != nil {
 			log.Printf("apiIdentGETHandler, json.Marshal(), %s", err.Error())
@@ -97,7 +94,7 @@ func apiIdentGETHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func apiIdentPUTHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
+func IdentPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var create bool
 
@@ -111,7 +108,7 @@ func apiIdentPUTHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Check to see if this ident already exists
-		i, err := db.GetIdentity(ident)
+		i, err := sc.DB.GetIdentity(ident)
 		if err != nil {
 			log.Printf("apiIdentPUTHandler, GetIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -141,7 +138,7 @@ func apiIdentPUTHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.SaveIdentity(id)
+		err = sc.DB.SaveIdentity(id)
 		if err != nil {
 			log.Printf("apiIdentPUTHandler, SaveIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

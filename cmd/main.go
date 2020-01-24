@@ -2,7 +2,10 @@ package main
 
 import (
 	hpf "github.com/d1str0/HPFBroker"
+	api "github.com/d1str0/HPFBroker/api"
+	auth "github.com/d1str0/HPFBroker/auth"
 
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"log"
@@ -30,8 +33,8 @@ type BrokerConfig struct {
 
 // Configuration for the webserver
 type HttpConfig struct {
-	Addr string
-	//SessionSecret string // For Gorilla sessions
+	Addr          string
+	SigningSecret string // For JWT Signing
 }
 
 type tomlConfig struct {
@@ -81,21 +84,31 @@ func main() {
 	broker.SetErrorLogger(log.Print)
 
 	hc := t.HttpConfig
-	// Run http server concurrently
-	go func() {
-		// Load routes for the server
-		mux := hpf.NewMux(db)
 
-		s := http.Server{
-			Addr:    hc.Addr,
-			Handler: mux,
-		}
+	secret, err := base64.StdEncoding.DecodeString(hc.SigningSecret)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jwt := &auth.JWTSecret{}
+	jwt.SetSecret(secret)
+
+	r := auth.InitRBAC()
+	sc := &hpf.ServerContext{Version: Version, JWTSecret: jwt, DB: db, RBAC: r}
+
+	// Run http server concurrently
+	// Load routes for the server
+	mux := api.NewMux(sc)
+
+	s := http.Server{
+		Addr:    hc.Addr,
+		Handler: mux,
+	}
+
+	go func() {
 		log.Fatal(s.ListenAndServe())
 	}()
 
 	// Start hpfeeds broker server
-	err = broker.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(broker.ListenAndServe())
 }
