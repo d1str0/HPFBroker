@@ -2,26 +2,37 @@ package api
 
 import (
 	hpf "github.com/d1str0/HPFBroker"
-	//	auth "github.com/d1str0/HPFBroker/auth"
 
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/d1str0/hpfeeds"
 	"github.com/gorilla/mux"
 )
 
-func IdentDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
+// A struct for parsing API input
+type UserReq struct {
+	Name     string
+	Password string
+	Role     string
+}
+
+// A struct for exporting User data via API responses
+type UserResp struct {
+	Name string
+	Role string
+}
+
+func UserDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		ident := vars["id"]
+		id := vars["id"]
 
-		// DELETE /api/ident/
-		// Delete all identities
-		if ident == "" {
-			err := sc.DB.DeleteAllIdentities()
+		// DELETE /api/user/
+		// Delete all users
+		if id == "" {
+			err := sc.DB.DeleteAllUsers()
 			if err != nil {
 				log.Printf("apiIdentDELETEHandler, DeleteAllIdentities(), %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -32,70 +43,78 @@ func IdentDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *ht
 		}
 
 		// Delete user
-		i, err := sc.DB.GetIdentity(ident)
+		u, err := sc.DB.GetUser(id)
 		if err != nil {
-			log.Printf("apiIdentDELETEHandler, GetIdentity(), %s", err.Error())
+			log.Printf("apiUserDELETEHandler, GetUser(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		// If it doesn't already exist, return 404.
-		if i == nil {
+		if u == nil {
 			w.WriteHeader(http.StatusNotFound)
 			http.Error(w, ErrNotFound, http.StatusNotFound)
 			return
 		}
 
-		err = sc.DB.DeleteIdentity(ident)
+		err = sc.DB.DeleteUser(id)
 		if err != nil {
-			log.Printf("apiIdentDELETEHandler, DeleteIdentity(), %s", err.Error())
+			log.Printf("apiUserDELETEHandler, DeleteUser(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 }
 
-func IdentGETHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
+func UserGETHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		ident := vars["id"]
+		id := vars["id"]
 
-		// "/api/ident/"
-		if ident == "" {
-			idents, err := sc.DB.GetAllIdentities()
+		// TODO: Factor out this section into new handler perhaps.
+		// "/api/user/"
+		if id == "" {
+			users, err := sc.DB.GetAllUsers()
 			if err != nil {
-				log.Printf("apiIdentGETHandler, GetAllIdentities(), %s", err.Error())
+				log.Printf("apiUserGETHandler, GetAllUsers(), %s", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 
+			var urs []*UserResp
+			for _, u := range users {
+				ur := &UserResp{Name: u.Name, Role: u.Role}
+				urs = append(urs, ur)
+			}
+
 			w.WriteHeader(http.StatusOK)
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(idents)
+			json.NewEncoder(w).Encode(urs)
 			return
 		}
 
-		// Return identity if found
-		i, err := sc.DB.GetIdentity(ident)
+		// Return user if found
+		u, err := sc.DB.GetUser(id)
 		if err != nil {
-			log.Printf("apiIdentGETHandler, GetIdentity(), %s", err.Error())
+			log.Printf("apiUserGETHandler, GetUser(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// 404 if we don't find one
-		if i == nil {
+		if u == nil {
 			http.Error(w, ErrNotFound, http.StatusNotFound)
 			return
 		}
 
-		// Turn to json
-		buf, err := json.Marshal(i)
+		// Make an appropriate response object (ie. no hash returned)
+		ur := &UserResp{Name: u.Name, Role: u.Role}
+		buf, err := json.Marshal(ur)
 		if err != nil {
-			log.Printf("apiIdentGETHandler, json.Marshal(), %s", err.Error())
+			log.Printf("apiUserGETHandler, json.Marshal(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -106,53 +125,59 @@ func IdentGETHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.
 	}
 }
 
-func IdentPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
+func UserPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var create bool
 
 		vars := mux.Vars(r)
-		ident := vars["id"]
+		id := vars["id"]
 
-		// Can't PUT on /ident/ without an identifier.
-		if ident == "" {
+		// Can't PUT on /user/ without an identifier.
+		if id == "" {
 			http.Error(w, ErrMissingIdentifier, http.StatusBadRequest)
 			return
 		}
 
-		// Check to see if this ident already exists
-		i, err := sc.DB.GetIdentity(ident)
+		// Check to see if this user name already exists
+		u, err := sc.DB.GetUser(id)
 		if err != nil {
-			log.Printf("apiIdentPUTHandler, GetIdentity(), %s", err.Error())
+			log.Printf("apiUserPUTHandler, GetIdentity(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Is this a new Ident being created?
+		// Is this a new User being created?
 		// We want to remember so we know to return 200 vs 201
-		if i == nil {
+		if u == nil {
 			create = true
 		}
 
-		// Update user
-		var id *hpfeeds.Identity = &hpfeeds.Identity{}
 		if r.Body == nil {
 			http.Error(w, ErrBodyRequired, http.StatusBadRequest)
 			return
 		}
 
-		err = json.NewDecoder(r.Body).Decode(id)
+		ureq := &UserReq{}
+		err = json.NewDecoder(r.Body).Decode(ureq)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if ident != id.Ident {
+		if id != ureq.Name {
 			http.Error(w, ErrMismatchedIdentifier, http.StatusBadRequest)
 			return
 		}
 
-		err = sc.DB.SaveIdentity(id)
+		u, err = hpf.NewUser(ureq.Name, ureq.Password, ureq.Role)
 		if err != nil {
-			log.Printf("apiIdentPUTHandler, SaveIdentity(), %s", err.Error())
+			log.Printf("apiUserPUTHandler, NewUser(), %s", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = sc.DB.SaveUser(u)
+		if err != nil {
+			log.Printf("apiUserPUTHandler, SaveUser(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -162,9 +187,10 @@ func IdentPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.
 			w.WriteHeader(http.StatusOK)
 		}
 
-		out, err := json.Marshal(id)
+		uresp := &UserResp{Name: u.Name, Role: u.Role}
+		out, err := json.Marshal(uresp)
 		if err != nil {
-			log.Printf("apiIdentPUTHandler, json.Marshal(), %s", err.Error())
+			log.Printf("apiUserPUTHandler, json.Marshal(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

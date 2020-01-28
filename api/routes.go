@@ -18,14 +18,25 @@ func statusHandler() func(w http.ResponseWriter, r *http.Request) {
 
 func router(sc *hpf.ServerContext) *mux.Router {
 	r := mux.NewRouter()
+
 	r.HandleFunc("/status", statusHandler())
+
 	r.HandleFunc("/api/authenticate", AuthHandler(sc)).Methods("POST")
+
 	r.HandleFunc("/api/ident/", IdentGETHandler(sc)).Methods("GET")
 	r.HandleFunc("/api/ident/", IdentPUTHandler(sc)).Methods("PUT") // Funnel bad request for proper response.
 	r.HandleFunc("/api/ident/", IdentDELETEHandler(sc)).Methods("DELETE")
 	r.HandleFunc("/api/ident/{id}", IdentGETHandler(sc)).Methods("GET")
 	r.HandleFunc("/api/ident/{id}", IdentPUTHandler(sc)).Methods("PUT")
 	r.HandleFunc("/api/ident/{id}", IdentDELETEHandler(sc)).Methods("DELETE")
+
+	r.HandleFunc("/api/user/", UserGETHandler(sc)).Methods("GET")
+	r.HandleFunc("/api/user/", UserPUTHandler(sc)).Methods("PUT") // Funnel bad request for proper response.
+	r.HandleFunc("/api/user/", UserDELETEHandler(sc)).Methods("DELETE")
+	r.HandleFunc("/api/user/{id}", UserGETHandler(sc)).Methods("GET")
+	r.HandleFunc("/api/user/{id}", UserPUTHandler(sc)).Methods("PUT")
+	r.HandleFunc("/api/user/{id}", UserDELETEHandler(sc)).Methods("DELETE")
+
 	return r
 }
 
