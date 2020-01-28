@@ -11,6 +11,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// TODO: Add validations for usernames and password complexity.
+
 // A struct for parsing API input
 type UserReq struct {
 	Name     string
