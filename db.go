@@ -96,7 +96,7 @@ func (db *DB) GetIdentity(ident string) (*hpfeeds.Identity, error) {
 }
 
 // SaveIdentity persists an hpfeeds.Identity in BoltStore.
-func (db *DB) SaveIdentity(id hpfeeds.Identity) error {
+func (db *DB) SaveIdentity(id *hpfeeds.Identity) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(IDBucket)
 		buf, err := json.Marshal(id)
@@ -175,7 +175,7 @@ func (db *DB) GetUser(name string) (*User, error) {
 }
 
 // SaveUser persists a User in BoltStore.
-func (db *DB) SaveUser(u User) error {
+func (db *DB) SaveUser(u *User) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(UserBucket)
 		buf, err := json.Marshal(u)

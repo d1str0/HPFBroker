@@ -1,6 +1,9 @@
 package api
 
 import (
+	hpf "github.com/d1str0/HPFBroker"
+	auth "github.com/d1str0/HPFBroker/auth"
+
 	"bytes"
 	"encoding/json"
 	"io"
@@ -11,6 +14,25 @@ import (
 
 	"github.com/gorilla/mux"
 )
+
+const TestDBPath = ".test.db"
+
+func testRouter(t *testing.T, db *hpf.DB) *mux.Router {
+	var secret = &auth.JWTSecret{}
+	secret.SetSecret([]byte{
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	})
+
+	r := auth.InitRBAC()
+
+	sc := &hpf.ServerContext{Version: "69.420.80085", JWTSecret: secret, DB: db, RBAC: r}
+
+	router := router(sc)
+	return router
+}
 
 // encodeBody is used to encode a request body
 func encodeBody(t *testing.T, obj interface{}) io.Reader {

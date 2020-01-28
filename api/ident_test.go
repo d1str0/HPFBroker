@@ -10,8 +10,6 @@ import (
 	"github.com/d1str0/hpfeeds"
 )
 
-const TestDBPath = ".test.db"
-
 func TestIdentHandler(t *testing.T) {
 	var secret = &auth.JWTSecret{}
 	secret.SetSecret([]byte{0x0000000000000000000000000000000000000000000000000000000000000000})
@@ -27,8 +25,8 @@ func TestIdentHandler(t *testing.T) {
 
 	router := router(sc)
 
-	id := hpfeeds.Identity{Ident: "test-ident", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
-	id2 := hpfeeds.Identity{Ident: "test-ident1", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
+	id := &hpfeeds.Identity{Ident: "test-ident", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
+	id2 := &hpfeeds.Identity{Ident: "test-ident1", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
 
 	t.Run("GET", func(t *testing.T) {
 		db.SaveIdentity(id)
@@ -62,7 +60,7 @@ func TestIdentHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			testRequestObj(t, router, req, http.StatusOK, []hpfeeds.Identity{id, id2})
+			testRequestObj(t, router, req, http.StatusOK, []*hpfeeds.Identity{id, id2})
 		})
 		db.DeleteIdentity(id.Ident)
 		db.DeleteIdentity(id2.Ident)

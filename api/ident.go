@@ -122,13 +122,13 @@ func IdentPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.
 		}
 
 		// Update user
-		var id hpfeeds.Identity
+		var id *hpfeeds.Identity = &hpfeeds.Identity{}
 		if r.Body == nil {
 			http.Error(w, ErrBodyRequired, http.StatusBadRequest)
 			return
 		}
 
-		err = json.NewDecoder(r.Body).Decode(&id)
+		err = json.NewDecoder(r.Body).Decode(id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
