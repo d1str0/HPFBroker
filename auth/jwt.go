@@ -21,7 +21,7 @@ type JWTSecret struct {
 // Sign takes a role string to be stored in the JWT and signed.
 // WARNING: This method is dangerous to call with a cryptographically
 // insecure secret.
-func (s JWTSecret) Sign(role string) (string, error) {
+func (s *JWTSecret) Sign(role string) (string, error) {
 	// Sanity check that secret is not empty and reasonable length
 	if len(s.secret) < MinBytes {
 		return "", ErrSecretTooShort
@@ -44,7 +44,7 @@ func (s JWTSecret) Sign(role string) (string, error) {
 	return tokenString, nil
 }
 
-func (s JWTSecret) Validate(tokenString string) (jwt.MapClaims, error) {
+func (s *JWTSecret) Validate(tokenString string) (jwt.MapClaims, error) {
 	// Parse takes the token string and a function for looking up/returning the
 	// key.
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -67,6 +67,8 @@ func (s JWTSecret) Validate(tokenString string) (jwt.MapClaims, error) {
 }
 
 // SetSecret allows for the secret of the signer to be set, but not exposed.
-func (s JWTSecret) SetSecret(secret []byte) {
-	s.secret = secret
+func (s *JWTSecret) SetSecret(secret []byte) {
+	buf := make([]byte, len(secret))
+	copy(buf, secret)
+	s.secret = buf
 }
