@@ -57,3 +57,23 @@ func InitRBAC() *gorbac.RBAC {
 
 	return r
 }
+
+// ValidRole takes a string and compares it to a list of valid rules. Returns
+// true if there is a match.
+func ValidRole(r string) bool {
+	roles := []string{
+		RoleHPFReader,
+		RoleHPFAdmin,
+		RoleUserReader,
+		RoleUserAdmin,
+		RoleSuperAdmin,
+	}
+
+	for _, role := range roles {
+		if r == role {
+			return true
+		}
+	}
+
+	return false
+}
