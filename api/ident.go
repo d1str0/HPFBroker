@@ -42,7 +42,7 @@ func IdentDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *ht
 		// If it doesn't already exist, return 404.
 		if i == nil {
 			w.WriteHeader(http.StatusNotFound)
-			http.Error(w, ErrNotFound, http.StatusNotFound)
+			http.Error(w, ErrNotFound.Error(), http.StatusNotFound)
 			return
 		}
 
@@ -88,7 +88,7 @@ func IdentGETHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.
 
 		// 404 if we don't find one
 		if i == nil {
-			http.Error(w, ErrNotFound, http.StatusNotFound)
+			http.Error(w, ErrNotFound.Error(), http.StatusNotFound)
 			return
 		}
 
@@ -115,7 +115,7 @@ func IdentPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.
 
 		// Can't PUT on /ident/ without an identifier.
 		if ident == "" {
-			http.Error(w, ErrMissingIdentifier, http.StatusBadRequest)
+			http.Error(w, ErrMissingID.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -136,7 +136,7 @@ func IdentPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.
 		// Update user
 		var id *hpfeeds.Identity = &hpfeeds.Identity{}
 		if r.Body == nil {
-			http.Error(w, ErrBodyRequired, http.StatusBadRequest)
+			http.Error(w, ErrBodyRequired.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -145,8 +145,9 @@ func IdentPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
 		if ident != id.Ident {
-			http.Error(w, ErrMismatchedIdentifier, http.StatusBadRequest)
+			http.Error(w, ErrMismatchedID.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -156,11 +157,6 @@ func IdentPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if create {
-			w.WriteHeader(http.StatusCreated)
-		} else {
-			w.WriteHeader(http.StatusOK)
-		}
 
 		out, err := json.Marshal(id)
 		if err != nil {
@@ -169,6 +165,12 @@ func IdentPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.
 			return
 		}
 
+		if create {
+			w.WriteHeader(http.StatusCreated)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, "%s", out)
 	}
 }

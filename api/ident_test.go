@@ -40,7 +40,7 @@ func TestIdentHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			testRequest(t, router, req, http.StatusNotFound, ErrNotFound)
+			testRequest(t, router, req, http.StatusNotFound, ErrNotFound.Error())
 		})
 
 		// SUCCESS
@@ -76,7 +76,7 @@ func TestIdentHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			testRequest(t, router, req, http.StatusBadRequest, ErrMissingIdentifier)
+			testRequest(t, router, req, http.StatusBadRequest, ErrMissingID.Error())
 		})
 
 		// FAIL
@@ -87,7 +87,7 @@ func TestIdentHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			testRequest(t, router, req, http.StatusBadRequest, ErrBodyRequired)
+			testRequest(t, router, req, http.StatusBadRequest, ErrBodyRequired.Error())
 		})
 
 		// FAIL
@@ -99,7 +99,7 @@ func TestIdentHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedIdentifier)
+			testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedID.Error())
 		})
 
 		// SUCCESS
@@ -136,7 +136,7 @@ func TestIdentHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedIdentifier)
+			testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedID.Error())
 		})
 	})
 
@@ -170,7 +170,7 @@ func TestIdentHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			testRequest(t, router, req, http.StatusNotFound, ErrNotFound)
+			testRequest(t, router, req, http.StatusNotFound, ErrNotFound.Error())
 		})
 
 	})

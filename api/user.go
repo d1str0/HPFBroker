@@ -87,7 +87,7 @@ func UserDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *htt
 		// If it doesn't already exist, return 404.
 		if u == nil {
 			w.WriteHeader(http.StatusNotFound)
-			http.Error(w, ErrNotFound, http.StatusNotFound)
+			http.Error(w, ErrNotFound.Error(), http.StatusNotFound)
 			return
 		}
 
@@ -140,7 +140,7 @@ func UserGETHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.R
 		}
 
 		if u == nil {
-			http.Error(w, ErrNotFound, http.StatusNotFound)
+			http.Error(w, ErrNotFound.Error(), http.StatusNotFound)
 			return
 		}
 
@@ -168,7 +168,7 @@ func UserPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.R
 
 		// Can't PUT on /user/ without an identifier.
 		if id == "" {
-			http.Error(w, ErrMissingIdentifier, http.StatusBadRequest)
+			http.Error(w, ErrMissingID.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -187,7 +187,7 @@ func UserPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.R
 		}
 
 		if r.Body == nil {
-			http.Error(w, ErrBodyRequired, http.StatusBadRequest)
+			http.Error(w, ErrBodyRequired.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -201,7 +201,7 @@ func UserPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.R
 
 		// Make sure payload username matches ID in URI
 		if id != ureq.Name {
-			http.Error(w, ErrMismatchedIdentifier, http.StatusBadRequest)
+			http.Error(w, ErrMismatchedID.Error(), http.StatusBadRequest)
 			return
 		}
 
