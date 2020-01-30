@@ -58,7 +58,7 @@ func ValidateUserReq(u *UserReq) error {
 	return nil
 }
 
-func UserDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
+func UserDELETEHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["id"]
@@ -104,7 +104,7 @@ func UserDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *htt
 
 }
 
-func UserGETHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
+func UserGETHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["id"]
@@ -159,7 +159,7 @@ func UserGETHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.R
 	}
 }
 
-func UserPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
+func UserPUTHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var create bool
 

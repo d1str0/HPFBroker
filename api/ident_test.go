@@ -21,7 +21,7 @@ func TestIdentHandler(t *testing.T) {
 
 	r := auth.InitRBAC()
 
-	sc := &hpf.ServerContext{Version: "69.420.80085", JWTSecret: secret, DB: db, RBAC: r}
+	sc := &ServerContext{Version: "69.420.80085", JWTSecret: secret, DB: db, RBAC: r}
 
 	router := router(sc)
 

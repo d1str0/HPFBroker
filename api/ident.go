@@ -1,9 +1,6 @@
 package api
 
 import (
-	hpf "github.com/d1str0/HPFBroker"
-	//	auth "github.com/d1str0/HPFBroker/auth"
-
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func IdentDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
+func IdentDELETEHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		ident := vars["id"]
@@ -58,7 +55,7 @@ func IdentDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *ht
 
 }
 
-func IdentGETHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
+func IdentGETHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		ident := vars["id"]
@@ -106,7 +103,7 @@ func IdentGETHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.
 	}
 }
 
-func IdentPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
+func IdentPUTHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var create bool
 

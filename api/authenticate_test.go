@@ -36,7 +36,7 @@ func TestAuthenticateHandler(t *testing.T) {
 
 		req.Header.Set("Authorization", "nospaces")
 
-		testRequest(t, router, req, http.StatusBadRequest, ErrAuthFailed)
+		testRequest(t, router, req, http.StatusBadRequest, ErrAuthFailed.Error())
 	})
 
 	// FAIL
@@ -48,7 +48,7 @@ func TestAuthenticateHandler(t *testing.T) {
 
 		req.Header.Set("Authorization", "two spa ces")
 
-		testRequest(t, router, req, http.StatusBadRequest, ErrAuthFailed)
+		testRequest(t, router, req, http.StatusBadRequest, ErrAuthFailed.Error())
 	})
 
 	// FAIL
@@ -61,7 +61,7 @@ func TestAuthenticateHandler(t *testing.T) {
 		// Test when "Basic" is not first word
 		req.Header.Set("Authorization", "Blasic auth")
 
-		testRequest(t, router, req, http.StatusBadRequest, ErrAuthFailed)
+		testRequest(t, router, req, http.StatusBadRequest, ErrAuthFailed.Error())
 	})
 
 	// FAIL
@@ -73,7 +73,7 @@ func TestAuthenticateHandler(t *testing.T) {
 
 		req.Header.Set("Authorization", "Basic definitelynotbase64!")
 
-		testRequest(t, router, req, http.StatusBadRequest, ErrAuthFailed)
+		testRequest(t, router, req, http.StatusBadRequest, ErrAuthFailed.Error())
 	})
 
 	// FAIL
@@ -87,7 +87,7 @@ func TestAuthenticateHandler(t *testing.T) {
 		v := fmt.Sprintf("Basic %s", b)
 		req.Header.Set("Authorization", v)
 
-		testRequest(t, router, req, http.StatusBadRequest, ErrAuthFailed)
+		testRequest(t, router, req, http.StatusBadRequest, ErrAuthFailed.Error())
 	})
 
 	// FAIL
@@ -101,7 +101,7 @@ func TestAuthenticateHandler(t *testing.T) {
 		v := fmt.Sprintf("Basic %s", b)
 		req.Header.Set("Authorization", v)
 
-		testRequest(t, router, req, http.StatusUnauthorized, ErrAuthFailed)
+		testRequest(t, router, req, http.StatusUnauthorized, ErrAuthFailed.Error())
 	})
 
 	// FAIL
@@ -115,7 +115,7 @@ func TestAuthenticateHandler(t *testing.T) {
 		v := fmt.Sprintf("Basic %s", b)
 		req.Header.Set("Authorization", v)
 
-		testRequest(t, router, req, http.StatusUnauthorized, ErrAuthInvalidCreds)
+		testRequest(t, router, req, http.StatusUnauthorized, ErrAuthInvalidCreds.Error())
 	})
 
 	// SUCCESS

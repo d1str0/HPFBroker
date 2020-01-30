@@ -1,26 +1,25 @@
 package api
 
 import (
-	hpf "github.com/d1str0/HPFBroker"
-
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 )
 
-var ErrAuthFailed = "Failed to authenticate"
-var ErrAuthInvalidCreds = "Invalid credentials"
+var ErrAuthFailed = errors.New("Failed to authenticate")
+var ErrAuthInvalidCreds = errors.New("Invalid credentials")
 
 // AuthHandler parses a Basic Authentication request.
-func AuthHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
+func AuthHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		auth := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
 
 		// Make sure this is of the format "Basic {credentials}"
 		if len(auth) != 2 || auth[0] != "Basic" {
 			// https://tools.ietf.org/html/rfc7231#section-6.5.1
-			http.Error(w, ErrAuthFailed, http.StatusBadRequest)
+			http.Error(w, ErrAuthFailed.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -28,7 +27,7 @@ func AuthHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Requ
 		if err != nil {
 			// TODO: Provide better response.
 			// https://tools.ietf.org/html/rfc7231#section-6.5.1
-			http.Error(w, ErrAuthFailed, http.StatusBadRequest)
+			http.Error(w, ErrAuthFailed.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -40,7 +39,7 @@ func AuthHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Requ
 		if len(pair) != 2 {
 			// TODO: Provide better response.
 			// https://tools.ietf.org/html/rfc7231#section-6.5.1
-			http.Error(w, ErrAuthFailed, http.StatusBadRequest)
+			http.Error(w, ErrAuthFailed.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -51,7 +50,7 @@ func AuthHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Requ
 			// Respond with valid types of authentication.
 			// https://tools.ietf.org/html/rfc7235#section-2.1
 			w.Header().Set("WWW-Authenticate", "Basic")
-			http.Error(w, ErrAuthFailed, http.StatusUnauthorized)
+			http.Error(w, ErrAuthFailed.Error(), http.StatusUnauthorized)
 			return
 		}
 
@@ -66,7 +65,7 @@ func AuthHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Requ
 		if !match {
 			// https://tools.ietf.org/html/rfc7235#section-2.1
 			w.Header().Set("WWW-Authenticate", "Basic")
-			http.Error(w, ErrAuthInvalidCreds, http.StatusUnauthorized)
+			http.Error(w, ErrAuthInvalidCreds.Error(), http.StatusUnauthorized)
 			return
 		}
 

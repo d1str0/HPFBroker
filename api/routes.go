@@ -1,12 +1,14 @@
 package api
 
 import (
-	hpf "github.com/d1str0/HPFBroker"
+	auth "github.com/d1str0/HPFBroker/auth"
 
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
+	rbac "github.com/mikespook/gorbac"
 )
 
 // TODO: Take a server object so we can display a version number.
@@ -16,32 +18,120 @@ func statusHandler() func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func router(sc *hpf.ServerContext) *mux.Router {
+func (sc *ServerContext) Permission(p rbac.Permission, h http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		auth := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
+		if len(auth) != 2 || auth[0] != "Bearer" {
+			// https://tools.ietf.org/html/rfc7235#section-3.1
+			w.Header().Set("WWW-Authenticate", "Basic")
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+
+		// auth[1] is the JWT at this point
+		claims, err := sc.JWTSecret.Validate(auth[1])
+		if err != nil {
+			// TODO: See what error might be returned, might not be good to
+			// divulge
+			w.Header().Set("WWW-Authenticate", "Basic")
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		role := claims["role"].(string)
+		if !sc.RBAC.IsGranted(role, p, nil) {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		h.ServeHTTP(w, r)
+	}
+}
+
+func router(sc *ServerContext) *mux.Router {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/status", statusHandler())
 
 	r.HandleFunc("/api/authenticate", AuthHandler(sc)).Methods("POST")
 
-	r.HandleFunc("/api/ident/", IdentGETHandler(sc)).Methods("GET")
-	r.HandleFunc("/api/ident/", IdentPUTHandler(sc)).Methods("PUT") // Funnel bad request for proper response.
-	r.HandleFunc("/api/ident/", IdentDELETEHandler(sc)).Methods("DELETE")
-	r.HandleFunc("/api/ident/{id}", IdentGETHandler(sc)).Methods("GET")
-	r.HandleFunc("/api/ident/{id}", IdentPUTHandler(sc)).Methods("PUT")
-	r.HandleFunc("/api/ident/{id}", IdentDELETEHandler(sc)).Methods("DELETE")
+	r.HandleFunc("/api/ident/",
+		sc.Permission(
+			auth.PermHPFRead,
+			IdentGETHandler(sc),
+		)).Methods("GET")
 
-	r.HandleFunc("/api/user/", UserGETHandler(sc)).Methods("GET")
-	r.HandleFunc("/api/user/", UserPUTHandler(sc)).Methods("PUT") // Funnel bad request for proper response.
-	r.HandleFunc("/api/user/", UserDELETEHandler(sc)).Methods("DELETE")
-	r.HandleFunc("/api/user/{id}", UserGETHandler(sc)).Methods("GET")
-	r.HandleFunc("/api/user/{id}", UserPUTHandler(sc)).Methods("PUT")
-	r.HandleFunc("/api/user/{id}", UserDELETEHandler(sc)).Methods("DELETE")
+	r.HandleFunc("/api/ident/",
+		sc.Permission(
+			auth.PermHPFWrite,
+			IdentPUTHandler(sc),
+		)).Methods("PUT") // Funnel bad request for proper response.
+
+	r.HandleFunc("/api/ident/",
+		sc.Permission(
+			auth.PermHPFWrite,
+			IdentDELETEHandler(sc),
+		)).Methods("DELETE")
+
+	r.HandleFunc("/api/ident/{id}",
+		sc.Permission(
+			auth.PermHPFRead,
+			IdentGETHandler(sc),
+		)).Methods("GET")
+
+	r.HandleFunc("/api/ident/{id}",
+		sc.Permission(
+			auth.PermHPFWrite,
+			IdentPUTHandler(sc),
+		)).Methods("PUT")
+
+	r.HandleFunc("/api/ident/{id}",
+		sc.Permission(
+			auth.PermHPFWrite,
+			IdentDELETEHandler(sc),
+		)).Methods("DELETE")
+
+	r.HandleFunc("/api/user/",
+		sc.Permission(
+			auth.PermUserRead,
+			UserGETHandler(sc),
+		)).Methods("GET")
+
+	r.HandleFunc("/api/user/",
+		sc.Permission(
+			auth.PermUserWrite,
+			UserPUTHandler(sc),
+		)).Methods("PUT") // Funnel bad request for proper response.
+
+	r.HandleFunc("/api/user/",
+		sc.Permission(
+			auth.PermUserWrite,
+			UserDELETEHandler(sc),
+		)).Methods("DELETE")
+
+	r.HandleFunc("/api/user/{id}",
+		sc.Permission(
+			auth.PermUserRead,
+			UserGETHandler(sc),
+		)).Methods("GET")
+
+	r.HandleFunc("/api/user/{id}",
+		sc.Permission(
+			auth.PermUserWrite,
+			UserPUTHandler(sc),
+		)).Methods("PUT")
+
+	r.HandleFunc("/api/user/{id}",
+		sc.Permission(
+			auth.PermUserWrite,
+			UserDELETEHandler(sc),
+		)).Methods("DELETE")
 
 	return r
 }
 
 // NewMux returns a new http.ServeMux with established routes.
-func NewMux(sc *hpf.ServerContext) *http.ServeMux {
+func NewMux(sc *ServerContext) *http.ServeMux {
 	r := router(sc)
 
 	s := http.NewServeMux()

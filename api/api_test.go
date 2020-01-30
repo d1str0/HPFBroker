@@ -28,7 +28,7 @@ func testRouter(t *testing.T, db *hpf.DB) *mux.Router {
 
 	r := auth.InitRBAC()
 
-	sc := &hpf.ServerContext{Version: "69.420.80085", JWTSecret: secret, DB: db, RBAC: r}
+	sc := &ServerContext{Version: "69.420.80085", JWTSecret: secret, DB: db, RBAC: r}
 
 	router := router(sc)
 	return router
