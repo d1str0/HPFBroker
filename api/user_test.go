@@ -8,6 +8,15 @@ import (
 	"testing"
 )
 
+// TODO: Rename
+func newUser(t *testing.T, ur *UserReq) *hpf.User {
+	u, err := hpf.NewUser(ur.Name, ur.Password, ur.Role)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return u
+}
+
 func TestUserHandler(t *testing.T) {
 	var secret = &auth.JWTSecret{}
 	secret.SetSecret([]byte{0x0000000000000000000000000000000000000000000000000000000000000000})
@@ -23,18 +32,12 @@ func TestUserHandler(t *testing.T) {
 
 	router := router(sc)
 
-	u, err := hpf.NewUser("test-name", "test-password", auth.RoleUserReader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	u2, err := hpf.NewUser("test2-name", "test-password", auth.RoleUserReader)
-	if err != nil {
-		t.Fatal(err)
-	}
+	u := &UserReq{Name: "test-name", Password: "test-password", Role: auth.RoleUserReader}
+	u2 := &UserReq{Name: "test2-name", Password: "test-password", Role: auth.RoleUserReader}
 
 	t.Run("GET", func(t *testing.T) {
-		db.SaveUser(u)
-		db.SaveUser(u2)
+		db.SaveUser(newUser(t, u))
+		db.SaveUser(newUser(t, u2))
 
 		// FAIL
 		t.Run("User Not Found", func(t *testing.T) {
@@ -152,6 +155,46 @@ func TestUserHandler(t *testing.T) {
 
 			testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedIdentifier)
 		})
+
+		// FAIL
+		t.Run("Invalid Username", func(t *testing.T) {
+			bad_ur := &UserReq{Name: "name:with:colon", Password: "validPassW0rd!", Role: auth.RoleUserReader}
+
+			r := encodeBody(t, bad_ur)
+			req, err := http.NewRequest("PUT", "/api/user/name:with:colon", r)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			testRequest(t, router, req, http.StatusBadRequest, ErrInvalidUserName.Error())
+		})
+
+		// FAIL
+		t.Run("Invalid Password", func(t *testing.T) {
+			bad_ur := &UserReq{Name: "validname", Password: "nope", Role: auth.RoleUserReader}
+
+			r := encodeBody(t, bad_ur)
+			req, err := http.NewRequest("PUT", "/api/user/validname", r)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			testRequest(t, router, req, http.StatusBadRequest, ErrInvalidUserPassword.Error())
+		})
+
+		// FAIL
+		t.Run("Invalid Role", func(t *testing.T) {
+			bad_ur := &UserReq{Name: "validname", Password: "surething", Role: "doesnt_exist"}
+
+			r := encodeBody(t, bad_ur)
+			req, err := http.NewRequest("PUT", "/api/user/validname", r)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			testRequest(t, router, req, http.StatusBadRequest, ErrInvalidUserRole.Error())
+		})
+
 	})
 
 	t.Run("DELETE", func(t *testing.T) {
@@ -165,7 +208,7 @@ func TestUserHandler(t *testing.T) {
 			testRequest(t, router, req, http.StatusNoContent, "")
 		})
 
-		db.SaveUser(u)
+		db.SaveUser(newUser(t, u))
 
 		// SUCCESS
 		t.Run("Delete One", func(t *testing.T) {

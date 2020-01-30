@@ -2,16 +2,30 @@ package api
 
 import (
 	hpf "github.com/d1str0/HPFBroker"
+	auth "github.com/d1str0/HPFBroker/auth"
 
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 
 	"github.com/gorilla/mux"
 )
 
-// TODO: Add validations for usernames and password complexity.
+var (
+	// User's Names should be alphanumeric, allowing "-", "@", ".", "+", and up
+	// to 32 characters in length. This allows emails as user names.
+	validUserName = regexp.MustCompile(`^[a-zA-Z0-9\-\@\.\+]{1,32}$`)
+
+	// Password can be any non whitespace character, at least 6 chars long.
+	validUserPassword = regexp.MustCompile(`\S{6,}`)
+
+	ErrInvalidUserName     = errors.New("User's Names must only be alphanumeric or include -, @, ., + and be up to 32 characters in length")
+	ErrInvalidUserPassword = errors.New("Password must be at least 6 characters long and not include whitespace")
+	ErrInvalidUserRole     = errors.New("Role does not exist")
+)
 
 // A struct for parsing API input
 type UserReq struct {
@@ -24,6 +38,24 @@ type UserReq struct {
 type UserResp struct {
 	Name string
 	Role string
+}
+
+// ValidateUserReq checks that all fields follow a valid format and that the RBAC
+// role actually exists.
+func ValidateUserReq(u *UserReq) error {
+	if !validUserName.MatchString(u.Name) {
+		return ErrInvalidUserName
+	}
+
+	if !validUserPassword.MatchString(u.Password) {
+		return ErrInvalidUserPassword
+	}
+
+	if !auth.ValidRole(u.Role) {
+		return ErrInvalidUserRole
+	}
+
+	return nil
 }
 
 func UserDELETEHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.Request) {
@@ -159,17 +191,28 @@ func UserPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.R
 			return
 		}
 
+		// Decode JSON payload
 		ureq := &UserReq{}
 		err = json.NewDecoder(r.Body).Decode(ureq)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		// Make sure payload username matches ID in URI
 		if id != ureq.Name {
 			http.Error(w, ErrMismatchedIdentifier, http.StatusBadRequest)
 			return
 		}
 
+		// Make sure all fields are valid.
+		err = ValidateUserReq(ureq)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Create new User obj.
 		u, err = hpf.NewUser(ureq.Name, ureq.Password, ureq.Role)
 		if err != nil {
 			log.Printf("apiUserPUTHandler, NewUser(), %s", err.Error())
@@ -177,18 +220,16 @@ func UserPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.R
 			return
 		}
 
+		// Save to database
 		err = sc.DB.SaveUser(u)
 		if err != nil {
 			log.Printf("apiUserPUTHandler, SaveUser(), %s", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if create {
-			w.WriteHeader(http.StatusCreated)
-		} else {
-			w.WriteHeader(http.StatusOK)
-		}
 
+		// Build a response obj to return, specifically leaving out
+		// Password/Hash
 		uresp := &UserResp{Name: u.Name, Role: u.Role}
 		out, err := json.Marshal(uresp)
 		if err != nil {
@@ -197,6 +238,14 @@ func UserPUTHandler(sc *hpf.ServerContext) func(w http.ResponseWriter, r *http.R
 			return
 		}
 
+		// If new user, create, if existing, we're updating so return status OK.
+		if create {
+			w.WriteHeader(http.StatusCreated)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, "%s", out)
 	}
 }
