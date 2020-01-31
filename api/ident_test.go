@@ -27,9 +27,39 @@ func test(t *testing.T, name string, router *mux.Router, method string, uri stri
 	})
 }
 
+func testObj(t *testing.T, name string, router *mux.Router, method string, uri string, r io.Reader, token string, expStatus int, expObj interface{}) {
+	t.Run(name, func(t *testing.T) {
+		req, err := http.NewRequest(method, uri, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		auth := fmt.Sprintf("Bearer %s", token)
+		req.Header.Set("Authorization", auth)
+
+		testRequestObj(t, router, req, expStatus, expObj)
+	})
+}
+
+func testNoAuth(t *testing.T, name string, router *mux.Router, method string, uri string, r io.Reader, expStatus int, expResp string) {
+	t.Run(name, func(t *testing.T) {
+		req, err := http.NewRequest(method, uri, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testRequest(t, router, req, expStatus, expResp)
+	})
+}
+
 func TestIdentHandler(t *testing.T) {
 	var secret = &auth.JWTSecret{}
-	secret.SetSecret([]byte{0x0000000000000000000000000000000000000000000000000000000000000000})
+	secret.SetSecret([]byte{
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	})
 	db, err := hpf.OpenDB(TestDBPath)
 	if err != nil {
 		t.Fatal(err)
@@ -45,144 +75,114 @@ func TestIdentHandler(t *testing.T) {
 	id := &hpfeeds.Identity{Ident: "test-ident", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
 	id2 := &hpfeeds.Identity{Ident: "test-ident1", Secret: "test-secret", SubChannels: []string{"asdf"}, PubChannels: []string{}}
 
+	invalidToken := "totallynotvalid"
+
+	hpfReaderToken, err := sc.JWTSecret.Sign(auth.RoleHPFReader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hpfAdminToken, err := sc.JWTSecret.Sign(auth.RoleHPFAdmin)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	superAdminToken, err := sc.JWTSecret.Sign(auth.RoleSuperAdmin)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	t.Run("GET", func(t *testing.T) {
 		db.SaveIdentity(id)
 		db.SaveIdentity(id2)
 
-		token := "totallynotvalid"
+		// Sanity Check FAIL
+		test(t, "User Found Invalid Token", router, "GET", "/api/ident/test-ident", nil, invalidToken, http.StatusUnauthorized, "token contains an invalid number of segments")
 
 		// FAIL
-		test(t, "User Not Found", router, "GET", "/api/ident/asdf", nil, token, http.StatusNotFound, ErrNotFound.Error())
+		test(t, "User Not Found (HPF Reader)", router, "GET", "/api/ident/asdf", nil, hpfReaderToken, http.StatusNotFound, ErrNotFound.Error())
+		test(t, "User Not Found (HPF Admin)", router, "GET", "/api/ident/asdf", nil, hpfAdminToken, http.StatusNotFound, ErrNotFound.Error())
+		test(t, "User Not Found (Super Admin)", router, "GET", "/api/ident/asdf", nil, superAdminToken, http.StatusNotFound, ErrNotFound.Error())
+		testNoAuth(t, "User Not Found (No Auth)", router, "GET", "/api/ident/asdf", nil, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
 
 		// SUCCESS
-		t.Run("User Found", func(t *testing.T) {
-			req, err := http.NewRequest("GET", "/api/ident/test-ident", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequestObj(t, router, req, http.StatusOK, id)
-		})
+		testObj(t, "User Found (HPF Reader)", router, "GET", "/api/ident/test-ident", nil, hpfReaderToken, http.StatusOK, id)
+		testObj(t, "User Found (HPF Admin)", router, "GET", "/api/ident/test-ident", nil, hpfAdminToken, http.StatusOK, id)
+		testObj(t, "User Found (Super Admin)", router, "GET", "/api/ident/test-ident", nil, superAdminToken, http.StatusOK, id)
+		testNoAuth(t, "User Found (No Auth)", router, "GET", "/api/ident/test-ident", nil, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
 
 		// SUCCESS
-		t.Run("Get All", func(t *testing.T) {
-			req, err := http.NewRequest("GET", "/api/ident/", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+		testObj(t, "Get All (HPF Reader)", router, "GET", "/api/ident/", nil, hpfReaderToken, http.StatusOK, []*hpfeeds.Identity{id, id2})
+		testObj(t, "Get All (HPF Admin)", router, "GET", "/api/ident/", nil, hpfAdminToken, http.StatusOK, []*hpfeeds.Identity{id, id2})
+		testObj(t, "Get All (Super Admin)", router, "GET", "/api/ident/", nil, superAdminToken, http.StatusOK, []*hpfeeds.Identity{id, id2})
+		testNoAuth(t, "Get All (No Auth)", router, "GET", "/api/ident/", nil, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
 
-			testRequestObj(t, router, req, http.StatusOK, []*hpfeeds.Identity{id, id2})
-		})
 		db.DeleteIdentity(id.Ident)
 		db.DeleteIdentity(id2.Ident)
 	})
 
 	t.Run("PUT", func(t *testing.T) {
 		// FAIL
-		t.Run("Missing Identifier", func(t *testing.T) {
-
-			r := encodeBody(t, id)
-			req, err := http.NewRequest("PUT", "/api/ident/", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrMissingID.Error())
-		})
+		r := encodeBody(t, id)
+		test(t, "Missing Identifier (HPF Reader)", router, "PUT", "/api/ident/", r, hpfReaderToken, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
+		test(t, "Missing Identifier (HPF Admin)", router, "PUT", "/api/ident/", r, hpfAdminToken, http.StatusBadRequest, ErrMissingID.Error())
+		test(t, "Missing Identifier (Super Admin)", router, "PUT", "/api/ident/", r, superAdminToken, http.StatusBadRequest, ErrMissingID.Error())
+		testNoAuth(t, "Missing Identifier (No Auth)", router, "PUT", "/api/ident/", nil, http.StatusUnauthorized, ErrAuthInvalidCreds.Error())
 
 		// FAIL
-		t.Run("Missing Request Body", func(t *testing.T) {
-
-			req, err := http.NewRequest("PUT", "/api/ident/test-ident", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrBodyRequired.Error())
-		})
+		test(t, "Missing Identifier (HPF Reader)", router, "PUT", "/api/ident/", nil, hpfReaderToken, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
+		test(t, "Missing Request Body (HPF Admin)", router, "PUT", "/api/ident/test-ident", nil, hpfReaderToken, http.StatusBadRequest, ErrBodyRequired.Error())
+		test(t, "Missing Request Body (Super Admin)", router, "PUT", "/api/ident/test-ident", nil, hpfReaderToken, http.StatusBadRequest, ErrBodyRequired.Error())
+		testNoAuth(t, "Missing Request Body (No Auth)", router, "PUT", "/api/ident/test-ident", nil, http.StatusUnauthorized, ErrAuthInvalidCreds.Error())
 
 		// FAIL
-		t.Run("Mismatched Identifier", func(t *testing.T) {
-
-			r := encodeBody(t, id)
-			req, err := http.NewRequest("PUT", "/api/ident/asdf", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedID.Error())
-		})
+		test(t, "Mismatched Identifier (HPF Reader)", router, "PUT", "/api/ident/asdf", r, hpfReaderToken, http.StatusBadRequest, ErrMismatchedID.Error())
+		test(t, "Mismatched Identifier (HPF Admin)", router, "PUT", "/api/ident/asdf", r, hpfReaderToken, http.StatusBadRequest, ErrMismatchedID.Error())
+		test(t, "Mismatched Identifier (Super Admin)", router, "PUT", "/api/ident/asdf", r, hpfReaderToken, http.StatusBadRequest, ErrMismatchedID.Error())
+		testNoAuth(t, "Mismatched Identifier (No Auth)", router, "PUT", "/api/ident/asdf", r, http.StatusUnauthorized, ErrAuthInvalidCreds.Error())
 
 		// SUCCESS
-		t.Run("Create Ident", func(t *testing.T) {
-
-			r := encodeBody(t, id)
-			req, err := http.NewRequest("PUT", "/api/ident/test-ident", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequestObj(t, router, req, http.StatusCreated, id)
-		})
+		testObj(t, "Create Ident (HPF Reader)", router, "PUT", "/api/ident/test-ident", r, hpfReaderToken, http.StatusCreated, id)
+		testObj(t, "Create Ident (HPF Admin)", router, "PUT", "/api/ident/test-ident", r, hpfReaderToken, http.StatusCreated, id)
+		testObj(t, "Create Ident (Super Admin)", router, "PUT", "/api/ident/test-ident", r, hpfReaderToken, http.StatusCreated, id)
+		testNoAuth(t, "Create Ident (No Auth)", router, "PUT", "/api/ident/test-ident", r, http.StatusUnauthorized, ErrAuthInvalidCreds.Error())
 		defer db.DeleteIdentity("test-ident")
 
 		// SUCCESS
-		t.Run("Update Ident", func(t *testing.T) {
-
-			r := encodeBody(t, id)
-			req, err := http.NewRequest("PUT", "/api/ident/test-ident", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequestObj(t, router, req, http.StatusOK, id)
-		})
+		id.Secret = "test-secret2"
+		r = encodeBody(t, id)
+		testObj(t, "Update Ident (HPF Reader)", router, "PUT", "/api/ident/test-ident", r, hpfReaderToken, http.StatusOK, id)
+		testObj(t, "Update Ident (HPF Admin)", router, "PUT", "/api/ident/test-ident", r, hpfReaderToken, http.StatusOK, id)
+		testObj(t, "Update Ident (Super Admin)", router, "PUT", "/api/ident/test-ident", r, hpfReaderToken, http.StatusOK, id)
+		testNoAuth(t, "Update Ident (No Auth)", router, "PUT", "/api/ident/test-ident", r, http.StatusUnauthorized, ErrAuthInvalidCreds.Error())
 
 		// FAIL
-		t.Run("Update Mismatched Ident", func(t *testing.T) {
-
-			r := encodeBody(t, id2)
-			req, err := http.NewRequest("PUT", "/api/ident/test-ident", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedID.Error())
-		})
+		r = encodeBody(t, id2)
+		test(t, "Update Mismatched Identifier (HPF Reader)", router, "PUT", "/api/ident/test-ident", r, hpfReaderToken, http.StatusBadRequest, ErrMismatchedID.Error())
+		test(t, "Update Mismatched Identifier (HPF Admin)", router, "PUT", "/api/ident/test-ident", r, hpfReaderToken, http.StatusBadRequest, ErrMismatchedID.Error())
+		test(t, "Update Mismatched Identifier (Super Admin)", router, "PUT", "/api/ident/test-ident", r, hpfReaderToken, http.StatusBadRequest, ErrMismatchedID.Error())
+		testNoAuth(t, "Update Mismatched Identifier (No Auth)", router, "PUT", "/api/ident/test-ident", r, http.StatusUnauthorized, ErrAuthInvalidCreds.Error())
 	})
 
 	t.Run("DELETE", func(t *testing.T) {
 		// SUCCESS
-		t.Run("Delete All", func(t *testing.T) {
-			req, err := http.NewRequest("DELETE", "/api/ident/", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusNoContent, "")
-		})
-
+		test(t, "Delete All (HPF Reader)", router, "DELETE", "/api/ident/", nil, hpfReaderToken, http.StatusNoContent, "")
+		test(t, "Delete All (HPF Admin)", router, "DELETE", "/api/ident/", nil, hpfReaderToken, http.StatusNoContent, "")
+		test(t, "Delete All (Super Admin)", router, "DELETE", "/api/ident/", nil, hpfReaderToken, http.StatusNoContent, "")
+		testNoAuth(t, "Delete All (No Auth)", router, "DELETE", "/api/ident/", nil, http.StatusUnauthorized, ErrAuthInvalidCreds.Error())
 		db.SaveIdentity(id)
 
 		// SUCCESS
-		t.Run("Delete One", func(t *testing.T) {
-			req, err := http.NewRequest("DELETE", "/api/ident/test-ident", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+		test(t, "Delete One (HPF Reader)", router, "DELETE", "/api/ident/test-ident", nil, hpfReaderToken, http.StatusNoContent, "")
+		test(t, "Delete One (HPF Admin)", router, "DELETE", "/api/ident/test-ident", nil, hpfReaderToken, http.StatusNoContent, "")
+		test(t, "Delete One (Super Admin)", router, "DELETE", "/api/ident/test-ident", nil, hpfReaderToken, http.StatusNoContent, "")
+		testNoAuth(t, "Delete One (No Auth)", router, "DELETE", "/api/ident/test-ident", nil, http.StatusUnauthorized, ErrAuthInvalidCreds.Error())
 
-			testRequest(t, router, req, http.StatusNoContent, "")
-		})
-
-		// SUCCESS
-		t.Run("Delete One Not Found", func(t *testing.T) {
-			req, err := http.NewRequest("DELETE", "/api/ident/test-ident", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusNotFound, ErrNotFound.Error())
-		})
+		// FAIL
+		test(t, "Delete One Not Found (HPF Reader)", router, "DELETE", "/api/ident/test-ident", nil, hpfReaderToken, http.StatusNotFound, ErrNotFound.Error())
+		test(t, "Delete One Not Found (HPF Admin)", router, "DELETE", "/api/ident/test-ident", nil, hpfReaderToken, http.StatusNotFound, ErrNotFound.Error())
+		test(t, "Delete One Not Found (Super Admin)", router, "DELETE", "/api/ident/test-ident", nil, hpfReaderToken, http.StatusNotFound, ErrNotFound.Error())
+		testNoAuth(t, "Delete One Not Found (No Auth)", router, "DELETE", "/api/ident/test-ident", nil, http.StatusUnauthorized, ErrAuthInvalidCreds.Error())
 
 	})
 }
