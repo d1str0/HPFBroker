@@ -4,11 +4,28 @@ import (
 	hpf "github.com/d1str0/HPFBroker"
 	auth "github.com/d1str0/HPFBroker/auth"
 
+	"fmt"
+	"io"
 	"net/http"
 	"testing"
 
 	"github.com/d1str0/hpfeeds"
+	"github.com/gorilla/mux"
 )
+
+func test(t *testing.T, name string, router *mux.Router, method string, uri string, r io.Reader, token string, expStatus int, expResp string) {
+	t.Run(name, func(t *testing.T) {
+		req, err := http.NewRequest(method, uri, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		auth := fmt.Sprintf("Bearer %s", token)
+		req.Header.Set("Authorization", auth)
+
+		testRequest(t, router, req, expStatus, expResp)
+	})
+}
 
 func TestIdentHandler(t *testing.T) {
 	var secret = &auth.JWTSecret{}
@@ -32,16 +49,10 @@ func TestIdentHandler(t *testing.T) {
 		db.SaveIdentity(id)
 		db.SaveIdentity(id2)
 
+		token := "totallynotvalid"
+
 		// FAIL
-		t.Run("User Not Found", func(t *testing.T) {
-
-			req, err := http.NewRequest("GET", "/api/ident/asdf", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusNotFound, ErrNotFound.Error())
-		})
+		test(t, "User Not Found", router, "GET", "/api/ident/asdf", nil, token, http.StatusNotFound, ErrNotFound.Error())
 
 		// SUCCESS
 		t.Run("User Found", func(t *testing.T) {

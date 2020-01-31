@@ -58,6 +58,10 @@ func (s *JWTSecret) Validate(tokenString string) (jwt.MapClaims, error) {
 		return s.secret, nil
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
 	// Check if the token is valid and the claims map properly.
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		err = claims.Valid()
