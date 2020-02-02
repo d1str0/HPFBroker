@@ -6,6 +6,7 @@ import (
 
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -42,6 +43,45 @@ func encodeBody(t *testing.T, obj interface{}) io.Reader {
 		t.Fatalf("error encoding obj: %#v", err)
 	}
 	return buf
+}
+
+func test(t *testing.T, name string, router *mux.Router, method string, uri string, r io.Reader, token string, expStatus int, expResp string) {
+	t.Run(name, func(t *testing.T) {
+		req, err := http.NewRequest(method, uri, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		auth := fmt.Sprintf("Bearer %s", token)
+		req.Header.Set("Authorization", auth)
+
+		testRequest(t, router, req, expStatus, expResp)
+	})
+}
+
+func testObj(t *testing.T, name string, router *mux.Router, method string, uri string, r io.Reader, token string, expStatus int, expObj interface{}) {
+	t.Run(name, func(t *testing.T) {
+		req, err := http.NewRequest(method, uri, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		auth := fmt.Sprintf("Bearer %s", token)
+		req.Header.Set("Authorization", auth)
+
+		testRequestObj(t, router, req, expStatus, expObj)
+	})
+}
+
+func testNoAuth(t *testing.T, name string, router *mux.Router, method string, uri string, r io.Reader, expStatus int, expResp string) {
+	t.Run(name, func(t *testing.T) {
+		req, err := http.NewRequest(method, uri, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testRequest(t, router, req, expStatus, expResp)
+	})
 }
 
 func testRequest(t *testing.T, router *mux.Router, req *http.Request, expectedStatus int, expected string) {

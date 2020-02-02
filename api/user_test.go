@@ -19,7 +19,13 @@ func newUser(t *testing.T, ur *UserReq) *hpf.User {
 
 func TestUserHandler(t *testing.T) {
 	var secret = &auth.JWTSecret{}
-	secret.SetSecret([]byte{0x0000000000000000000000000000000000000000000000000000000000000000})
+	secret.SetSecret([]byte{
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	})
+
 	db, err := hpf.OpenDB(TestDBPath)
 	if err != nil {
 		t.Fatal(err)
@@ -35,46 +41,31 @@ func TestUserHandler(t *testing.T) {
 	u := &UserReq{Name: "test-name", Password: "test-password", Role: auth.RoleUserReader}
 	u2 := &UserReq{Name: "test2-name", Password: "test-password", Role: auth.RoleUserReader}
 
+	invalidToken := "totallynotvalid"
+
+	userReaderToken, err := sc.JWTSecret.Sign(auth.RoleUserReader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	userAdminToken, err := sc.JWTSecret.Sign(auth.RoleUserAdmin)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	t.Run("GET", func(t *testing.T) {
 		db.SaveUser(newUser(t, u))
 		db.SaveUser(newUser(t, u2))
 
 		// FAIL
-		t.Run("User Not Found", func(t *testing.T) {
+		testNoAuth(t, "User Not Found (No Auth)", router, "GET", "/api/user/asdf", nil, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
+		test(t, "User Found (Invalid Token)", router, "GET", "/api/user/asdf", nil, invalidToken, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
 
-			req, err := http.NewRequest("GET", "/api/user/asdf", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+		test(t, "User Not Found (User Reader)", router, "GET", "/api/user/asdf", nil, userReaderToken, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
 
-			testRequest(t, router, req, http.StatusNotFound, ErrNotFound.Error())
-		})
+		testObj(t, "User Found (User Reader)", router, "GET", "/api/user/test-name", nil, userReaderToken, http.StatusOK, ur)
+		testObj(t, "Get All Users (User Reader)", router, "GET", "/api/user/", nil, userReaderToken, http.StatusOK, []*UserResp{ur, ur2})
 
-		// SUCCESS
-		t.Run("User Found", func(t *testing.T) {
-			req, err := http.NewRequest("GET", "/api/user/test-name", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			// Expected response structure
-			ur := &UserResp{Name: u.Name, Role: u.Role}
-
-			testRequestObj(t, router, req, http.StatusOK, ur)
-		})
-
-		// SUCCESS
-		t.Run("Get All", func(t *testing.T) {
-			req, err := http.NewRequest("GET", "/api/user/", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			ur := &UserResp{Name: u.Name, Role: u.Role}
-			ur2 := &UserResp{Name: u2.Name, Role: u2.Role}
-
-			testRequestObj(t, router, req, http.StatusOK, []*UserResp{ur, ur2})
-		})
 		db.DeleteUser(u.Name)
 		db.DeleteUser(u2.Name)
 	})
