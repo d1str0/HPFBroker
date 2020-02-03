@@ -39,7 +39,7 @@ func IdentDELETEHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.R
 		// If it doesn't already exist, return 404.
 		if i == nil {
 			w.WriteHeader(http.StatusNotFound)
-			http.Error(w, ErrNotFound.Error(), http.StatusNotFound)
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
 
@@ -85,7 +85,7 @@ func IdentGETHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.Requ
 
 		// 404 if we don't find one
 		if i == nil {
-			http.Error(w, ErrNotFound.Error(), http.StatusNotFound)
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
 

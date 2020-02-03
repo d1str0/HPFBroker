@@ -41,6 +41,9 @@ func TestUserHandler(t *testing.T) {
 	u := &UserReq{Name: "test-name", Password: "test-password", Role: auth.RoleUserReader}
 	u2 := &UserReq{Name: "test2-name", Password: "test-password", Role: auth.RoleUserReader}
 
+	ur := &UserResp{Name: u.Name, Role: u.Role}
+	ur2 := &UserResp{Name: u2.Name, Role: u2.Role}
+
 	invalidToken := "totallynotvalid"
 
 	userReaderToken, err := sc.JWTSecret.Sign(auth.RoleUserReader)
@@ -59,9 +62,9 @@ func TestUserHandler(t *testing.T) {
 
 		// FAIL
 		testNoAuth(t, "User Not Found (No Auth)", router, "GET", "/api/user/asdf", nil, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
-		test(t, "User Found (Invalid Token)", router, "GET", "/api/user/asdf", nil, invalidToken, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
+		test(t, "User Found (Invalid Token)", router, "GET", "/api/user/asdf", nil, invalidToken, http.StatusUnauthorized, "token contains an invalid number of segments")
 
-		test(t, "User Not Found (User Reader)", router, "GET", "/api/user/asdf", nil, userReaderToken, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
+		test(t, "User Not Found (User Reader)", router, "GET", "/api/user/asdf", nil, userReaderToken, http.StatusNotFound, http.StatusText(http.StatusNotFound))
 
 		testObj(t, "User Found (User Reader)", router, "GET", "/api/user/test-name", nil, userReaderToken, http.StatusOK, ur)
 		testObj(t, "Get All Users (User Reader)", router, "GET", "/api/user/", nil, userReaderToken, http.StatusOK, []*UserResp{ur, ur2})
@@ -72,154 +75,59 @@ func TestUserHandler(t *testing.T) {
 
 	t.Run("PUT", func(t *testing.T) {
 		// FAIL
-		t.Run("Missing Identifier", func(t *testing.T) {
+		r := encodeBody(t, u)
+		testNoAuth(t, "Create Person (No Auth)", router, "PUT", "/api/user/test-name", r, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
 
-			r := encodeBody(t, u)
-			req, err := http.NewRequest("PUT", "/api/user/", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrMissingID.Error())
-		})
+		r = encodeBody(t, u)
+		test(t, "Missing Identifier (User Admin)", router, "PUT", "/api/user/", r, userAdminToken, http.StatusBadRequest, ErrMissingID.Error())
 
 		// FAIL
-		t.Run("Missing Request Body", func(t *testing.T) {
+		test(t, "Missing Request Body (User Admin)", router, "PUT", "/api/user/test-name", nil, userAdminToken, http.StatusBadRequest, ErrBodyRequired.Error())
 
-			req, err := http.NewRequest("PUT", "/api/user/test-name", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrBodyRequired.Error())
-		})
-
-		// FAIL
-		t.Run("Mismatched Identifier", func(t *testing.T) {
-
-			r := encodeBody(t, u)
-			req, err := http.NewRequest("PUT", "/api/user/asdf", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedID.Error())
-		})
+		r = encodeBody(t, u)
+		test(t, "Missing Identifier (User Admin)", router, "PUT", "/api/user/asdf", r, userAdminToken, http.StatusBadRequest, ErrMismatchedID.Error())
 
 		// SUCCESS
-		t.Run("Create User", func(t *testing.T) {
-
-			r := encodeBody(t, u)
-			req, err := http.NewRequest("PUT", "/api/user/test-name", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			ur := &UserResp{Name: u.Name, Role: u.Role}
-
-			testRequestObj(t, router, req, http.StatusCreated, ur)
-		})
+		r = encodeBody(t, u)
+		testObj(t, "Create User (User Admin)", router, "PUT", "/api/user/test-name", r, userAdminToken, http.StatusCreated, ur)
 		defer db.DeleteUser("test-name")
 
 		// SUCCESS
-		t.Run("Update User", func(t *testing.T) {
-
-			r := encodeBody(t, u)
-			req, err := http.NewRequest("PUT", "/api/user/test-name", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			ur := &UserResp{Name: u.Name, Role: u.Role}
-
-			testRequestObj(t, router, req, http.StatusOK, ur)
-		})
+		r = encodeBody(t, u)
+		testObj(t, "Update User (User Admin)", router, "PUT", "/api/user/test-name", r, userAdminToken, http.StatusOK, ur)
 
 		// FAIL
-		t.Run("Update Mismatched User", func(t *testing.T) {
-
-			r := encodeBody(t, u2)
-			req, err := http.NewRequest("PUT", "/api/user/test-name", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrMismatchedID.Error())
-		})
+		r = encodeBody(t, u2)
+		test(t, "Update Mismatched User (User Admin)", router, "PUT", "/api/user/test-name", r, userAdminToken, http.StatusBadRequest, ErrMismatchedID.Error())
 
 		// FAIL
-		t.Run("Invalid Username", func(t *testing.T) {
-			bad_ur := &UserReq{Name: "name:with:colon", Password: "validPassW0rd!", Role: auth.RoleUserReader}
-
-			r := encodeBody(t, bad_ur)
-			req, err := http.NewRequest("PUT", "/api/user/name:with:colon", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrInvalidUserName.Error())
-		})
+		bad_ur := &UserReq{Name: "name:with:colon", Password: "validPassW0rd!", Role: auth.RoleUserReader}
+		r = encodeBody(t, bad_ur)
+		test(t, "Invalid Username (User Admin)", router, "PUT", "/api/user/name:with:colon", r, userAdminToken, http.StatusBadRequest, ErrInvalidUserName.Error())
 
 		// FAIL
-		t.Run("Invalid Password", func(t *testing.T) {
-			bad_ur := &UserReq{Name: "validname", Password: "nope", Role: auth.RoleUserReader}
-
-			r := encodeBody(t, bad_ur)
-			req, err := http.NewRequest("PUT", "/api/user/validname", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrInvalidUserPassword.Error())
-		})
+		bad_ur = &UserReq{Name: "validname", Password: "nope", Role: auth.RoleUserReader}
+		r = encodeBody(t, bad_ur)
+		test(t, "Invalid Password (User Admin)", router, "PUT", "/api/user/validname", r, userAdminToken, http.StatusBadRequest, ErrInvalidUserPassword.Error())
 
 		// FAIL
-		t.Run("Invalid Role", func(t *testing.T) {
-			bad_ur := &UserReq{Name: "validname", Password: "surething", Role: "doesnt_exist"}
-
-			r := encodeBody(t, bad_ur)
-			req, err := http.NewRequest("PUT", "/api/user/validname", r)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusBadRequest, ErrInvalidUserRole.Error())
-		})
+		bad_ur = &UserReq{Name: "validname", Password: "surething", Role: "doesnt_exist"}
+		r = encodeBody(t, bad_ur)
+		test(t, "Invalid Password (User Admin)", router, "PUT", "/api/user/validname", r, userAdminToken, http.StatusBadRequest, ErrInvalidUserRole.Error())
 
 	})
 
 	t.Run("DELETE", func(t *testing.T) {
 		// SUCCESS
-		t.Run("Delete All", func(t *testing.T) {
-			req, err := http.NewRequest("DELETE", "/api/user/", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusNoContent, "")
-		})
+		test(t, "Delete All (User Admin)", router, "DELETE", "/api/user/", nil, userAdminToken, http.StatusNoContent, "")
 
 		db.SaveUser(newUser(t, u))
 
 		// SUCCESS
-		t.Run("Delete One", func(t *testing.T) {
-			req, err := http.NewRequest("DELETE", "/api/user/test-name", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+		test(t, "Delete One (User Admin)", router, "DELETE", "/api/user/test-name", nil, userAdminToken, http.StatusNoContent, "")
 
-			testRequest(t, router, req, http.StatusNoContent, "")
-		})
-
-		// SUCCESS
-		t.Run("Delete One Not Found", func(t *testing.T) {
-			req, err := http.NewRequest("DELETE", "/api/user/test-name", nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			testRequest(t, router, req, http.StatusNotFound, ErrNotFound.Error())
-		})
+		// FAIL
+		test(t, "Delete One Not Found (User Admin)", router, "DELETE", "/api/user/test-name", nil, userAdminToken, http.StatusNotFound, http.StatusText(http.StatusNotFound))
 
 	})
 }

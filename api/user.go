@@ -87,7 +87,7 @@ func UserDELETEHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.Re
 		// If it doesn't already exist, return 404.
 		if u == nil {
 			w.WriteHeader(http.StatusNotFound)
-			http.Error(w, ErrNotFound.Error(), http.StatusNotFound)
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
 
@@ -140,7 +140,7 @@ func UserGETHandler(sc *ServerContext) func(w http.ResponseWriter, r *http.Reque
 		}
 
 		if u == nil {
-			http.Error(w, ErrNotFound.Error(), http.StatusNotFound)
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
 

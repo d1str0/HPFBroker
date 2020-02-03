@@ -94,7 +94,7 @@ func main() {
 	jwt.SetSecret(secret)
 
 	r := auth.InitRBAC()
-	sc := &hpf.ServerContext{Version: Version, JWTSecret: jwt, DB: db, RBAC: r}
+	sc := &api.ServerContext{Version: Version, JWTSecret: jwt, DB: db, RBAC: r}
 
 	// Run http server concurrently
 	// Load routes for the server

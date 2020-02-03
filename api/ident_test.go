@@ -54,7 +54,7 @@ func TestIdentHandler(t *testing.T) {
 		test(t, "User Found Invalid Token", router, "GET", "/api/ident/test-ident", nil, invalidToken, http.StatusUnauthorized, "token contains an invalid number of segments")
 
 		// FAIL
-		test(t, "User Not Found (HPF Reader)", router, "GET", "/api/ident/asdf", nil, hpfReaderToken, http.StatusNotFound, ErrNotFound.Error())
+		test(t, "User Not Found (HPF Reader)", router, "GET", "/api/ident/asdf", nil, hpfReaderToken, http.StatusNotFound, http.StatusText(http.StatusNotFound))
 
 		// SUCCESS
 		testObj(t, "User Found (HPF Reader)", router, "GET", "/api/ident/test-ident", nil, hpfReaderToken, http.StatusOK, id)
@@ -112,7 +112,7 @@ func TestIdentHandler(t *testing.T) {
 		testNoAuth(t, "Delete One (No Auth)", router, "DELETE", "/api/ident/test-ident", nil, http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
 
 		// FAIL
-		test(t, "Delete One Not Found (HPF Admin)", router, "DELETE", "/api/ident/test-ident", nil, hpfAdminToken, http.StatusNotFound, ErrNotFound.Error())
+		test(t, "Delete One Not Found (HPF Admin)", router, "DELETE", "/api/ident/test-ident", nil, hpfAdminToken, http.StatusNotFound, http.StatusText(http.StatusNotFound))
 
 	})
 }
