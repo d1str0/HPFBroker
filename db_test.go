@@ -199,6 +199,7 @@ func TestKvstore_BoltStore(t *testing.T) {
 }
 
 func assertEqualIdentity(t *testing.T, expect *hpfeeds.Identity, got *hpfeeds.Identity) {
+	t.Helper()
 	if expect.Ident != got.Ident {
 		t.Errorf("Mismatched Idents:\n\tgot %s \n\twant %s", got.Ident, expect.Ident)
 	}
@@ -214,6 +215,7 @@ func assertEqualIdentity(t *testing.T, expect *hpfeeds.Identity, got *hpfeeds.Id
 }
 
 func assertEqualUser(t *testing.T, expect *User, got *User) {
+	t.Helper()
 	if expect.Name != got.Name {
 		t.Errorf("Mismatched Names:\n\tgot %s \n\twant %s", got.Name, expect.Name)
 	}

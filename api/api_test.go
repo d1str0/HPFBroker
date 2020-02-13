@@ -19,6 +19,7 @@ import (
 const TestDBPath = ".test.db"
 
 func testRouter(t *testing.T, db *hpf.DB) *mux.Router {
+	t.Helper()
 	var secret = &auth.JWTSecret{}
 	secret.SetSecret([]byte{
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -37,6 +38,7 @@ func testRouter(t *testing.T, db *hpf.DB) *mux.Router {
 
 // encodeBody is used to encode a request body
 func encodeBody(t *testing.T, obj interface{}) io.Reader {
+	t.Helper()
 	buf := bytes.NewBuffer(nil)
 	enc := json.NewEncoder(buf)
 	if err := enc.Encode(obj); err != nil {
@@ -46,6 +48,7 @@ func encodeBody(t *testing.T, obj interface{}) io.Reader {
 }
 
 func test(t *testing.T, name string, router *mux.Router, method string, uri string, r io.Reader, token string, expStatus int, expResp string) {
+	t.Helper()
 	t.Run(name, func(t *testing.T) {
 		req, err := http.NewRequest(method, uri, r)
 		if err != nil {
@@ -60,6 +63,7 @@ func test(t *testing.T, name string, router *mux.Router, method string, uri stri
 }
 
 func testObj(t *testing.T, name string, router *mux.Router, method string, uri string, r io.Reader, token string, expStatus int, expObj interface{}) {
+	t.Helper()
 	t.Run(name, func(t *testing.T) {
 		req, err := http.NewRequest(method, uri, r)
 		if err != nil {
@@ -74,6 +78,7 @@ func testObj(t *testing.T, name string, router *mux.Router, method string, uri s
 }
 
 func testNoAuth(t *testing.T, name string, router *mux.Router, method string, uri string, r io.Reader, expStatus int, expResp string) {
+	t.Helper()
 	t.Run(name, func(t *testing.T) {
 		req, err := http.NewRequest(method, uri, r)
 		if err != nil {
@@ -85,6 +90,7 @@ func testNoAuth(t *testing.T, name string, router *mux.Router, method string, ur
 }
 
 func testRequest(t *testing.T, router *mux.Router, req *http.Request, expectedStatus int, expected string) {
+	t.Helper()
 	rr := httptest.NewRecorder()
 
 	router.ServeHTTP(rr, req)
@@ -102,6 +108,7 @@ func testRequest(t *testing.T, router *mux.Router, req *http.Request, expectedSt
 }
 
 func testRequestObj(t *testing.T, router *mux.Router, req *http.Request, expectedStatus int, obj interface{}) {
+	t.Helper()
 	rr := httptest.NewRecorder()
 
 	router.ServeHTTP(rr, req)
